@@ -56,22 +56,27 @@
                    class="rounded-full bg-[#E82C2A] px-5 py-2.5 text-sm font-semibold text-white">
                     Quay lại thực đơn
                 </a>
-            @elseif($order->trang_thai === 'hoan_thanh' || $order->trang_thai === 'da_huy')
+            @else
+                {{-- Mọi trạng thái khác dang_chon (đang chờ/pha chế/phục vụ/đã TT/đã hủy):
+                     cho phép tạo ĐƠN MỚI ngay cả khi đơn cũ đang được phục vụ. --}}
+                @php $dangXuLy = in_array($order->trang_thai, ['cho_xac_nhan','dang_pha_che','da_phuc_vu']); @endphp
                 @if($order->ma_ban)
-                {{-- Tạo đơn mới ngay từ thông tin khách đã lưu rồi vào thẳng thực đơn (không quay lại trang đăng nhập bàn) --}}
                 <form method="POST" action="{{ route('customer.create', $order->ma_ban) }}">
                     @csrf
                     <input type="hidden" name="ten_kh" value="{{ session('customer_profile.ten_kh', $order->ten_khach ?: 'Khách') }}">
                     <input type="hidden" name="sdt_kh" value="{{ session('customer_profile.sdt_kh', $order->sdt_khach) }}">
                     <button type="submit" class="rounded-full bg-[#E82C2A] px-5 py-2.5 text-sm font-semibold text-white">
-                        Gọi món khác
+                        {{ $dangXuLy ? 'Đặt thêm đơn mới' : 'Gọi món khác' }}
                     </button>
                 </form>
                 @else
                 <a href="{{ route('customer.scan', ['ma_ban' => $order->ma_ban]) }}"
                    class="rounded-full bg-[#E82C2A] px-5 py-2.5 text-sm font-semibold text-white">
-                    Gọi món khác
+                    {{ $dangXuLy ? 'Đặt thêm đơn mới' : 'Gọi món khác' }}
                 </a>
+                @endif
+                @if($dangXuLy)
+                <p class="mt-1 w-full text-center text-xs text-[#522C25]/55">Đơn hiện tại vẫn đang được phục vụ — đơn mới sẽ là một đơn riêng.</p>
                 @endif
             @endif
         </div>
