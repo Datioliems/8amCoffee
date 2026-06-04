@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\HoaDon;
 use App\Models\Order;
 use App\Models\OrderLog;
+use App\Models\TheThanhVien;
 use App\Services\OrderService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -15,9 +16,9 @@ class PaymentService
 
     public function __construct(private OrderService $orderService) {}
 
-    public function createInvoice(string $maOrder, float $chietKhau, string $phuongThuc, string $maNvThuNgan): string
+    public function createInvoice(string $maOrder, float $chietKhau, string $phuongThuc, string $maNvThuNgan, ?string $maThe = null, int $soDiemDoi = 0): string
     {
-        return DB::transaction(function () use ($maOrder, $chietKhau, $phuongThuc, $maNvThuNgan) {
+        return DB::transaction(function () use ($maOrder, $chietKhau, $phuongThuc, $maNvThuNgan, $maThe, $soDiemDoi) {
             $order = Order::with(['chiTietOrders.options', 'hoaDon'])
                 ->where('ma_order', $maOrder)
                 ->lockForUpdate()
@@ -45,6 +46,21 @@ class PaymentService
             );
             $tongSau = $tongTruoc * (1 - $chietKhau / 100);
 
+            // Đổi điểm thẻ thành viên (nếu có) — trừ tiếp vào số tiền sau chiết khấu.
+            $giamDiem = 0;
+            $diemDung = 0;
+            $theObj = null;
+            if ($maThe && $soDiemDoi > 0) {
+                $theObj = TheThanhVien::where('ma_the', $maThe)->lockForUpdate()->first();
+                if ($theObj) {
+                    // quoteRedemption ném ValidationException nếu không hợp lệ (→ controller bắt).
+                    $quote = app(LoyaltyService::class)->quoteRedemption($theObj, $soDiemDoi, (float) $tongSau);
+                    $diemDung = $quote['so_diem'];
+                    $giamDiem = $quote['tien_giam'];
+                }
+            }
+            $tongSauCung = max(0, $tongSau - $giamDiem);
+
             do {
                 $maHoaDon = 'HD' . now()->format('YmdHis') . random_int(1000, 9999);
             } while (HoaDon::whereKey($maHoaDon)->exists());
@@ -53,13 +69,21 @@ class PaymentService
                 'ma_hoa_don'         => $maHoaDon,
                 'ma_order'           => $maOrder,
                 'ma_kh'              => $order->ma_kh,
+                'ma_the'             => $theObj?->ma_the,
                 'tong_tien_truoc_ck' => $tongTruoc,
                 'chiet_khau'         => $chietKhau,
-                'tong_tien_sau_ck'   => $tongSau,
+                'diem_su_dung'       => $diemDung,
+                'giam_gia_diem'      => $giamDiem,
+                'tong_tien_sau_ck'   => $tongSauCung,
                 'phuong_thuc_tt'     => $phuongThuc,
                 'trang_thai'         => 'da_thanh_toan',
                 'ma_nv_thu_ngan'     => $maNvThuNgan,
             ]);
+
+            // Ghi sổ trừ điểm (sau khi đã có mã hóa đơn để liên kết).
+            if ($theObj && $giamDiem > 0) {
+                app(LoyaltyService::class)->applyRedemption($theObj, $diemDung, $giamDiem, $maOrder, $maHoaDon);
+            }
 
             $oldStatus = $order->trang_thai;
             $order->update([
@@ -77,7 +101,8 @@ class PaymentService
                     'ma_hoa_don'         => $maHoaDon,
                     'tong_tien_truoc_ck' => $tongTruoc,
                     'chiet_khau'         => $chietKhau,
-                    'tong_tien_sau_ck'   => $tongSau,
+                    'giam_gia_diem'      => $giamDiem,
+                    'tong_tien_sau_ck'   => $tongSauCung,
                     'phuong_thuc_tt'     => $phuongThuc,
                 ],
                 'ma_nv'      => $maNvThuNgan,
@@ -87,7 +112,7 @@ class PaymentService
             // Tích điểm thẻ thành viên RFID (nếu khách có thẻ đang hoạt động).
             // Bọc try/catch: lỗi loyalty KHÔNG được làm hỏng giao dịch thanh toán.
             try {
-                app(LoyaltyService::class)->earnForCustomer($order->ma_kh, (float) $tongSau, $maOrder, $maHoaDon);
+                app(LoyaltyService::class)->earnForCustomer($order->ma_kh, (float) $tongSauCung, $maOrder, $maHoaDon);
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::warning('Loyalty earn failed for ' . $maOrder . ': ' . $e->getMessage());
             }

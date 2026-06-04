@@ -97,6 +97,12 @@
             </span>
             Khách hàng
         </a>
+        <a href="{{ route('loyalty.index') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition {{ request()->routeIs('loyalty.*') ? 'bg-[#1A1A1A] text-white' : 'text-[#522C25] hover:bg-[#F2F2F2]' }}">
+            <span class="flex h-8 w-8 items-center justify-center rounded-lg {{ request()->routeIs('loyalty.*') ? 'bg-white/15' : 'bg-white' }}">
+                <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 15h4"/></svg>
+            </span>
+            Thẻ thành viên
+        </a>
         <a href="{{ route('scanlog.index') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition {{ request()->routeIs('scanlog.*') ? 'bg-[#1A1A1A] text-white' : 'text-[#522C25] hover:bg-[#F2F2F2]' }}">
             <span class="flex h-8 w-8 items-center justify-center rounded-lg {{ request()->routeIs('scanlog.*') ? 'bg-white/15' : 'bg-white' }}">
                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><path d="M7 12h10"/></svg>
@@ -163,6 +169,7 @@
         @if(in_array(session('chuc_vu'), ['superadmin', 'admin']))
             <a href="{{ route('nhanvien.index') }}" class="block rounded-xl px-3 py-2 text-sm">Nhân viên & quyền</a>
             <a href="{{ route('khachhang.index') }}" class="block rounded-xl px-3 py-2 text-sm">Khách hàng</a>
+            <a href="{{ route('loyalty.index') }}" class="block rounded-xl px-3 py-2 text-sm">Thẻ thành viên</a>
             <a href="{{ route('scanlog.index') }}" class="block rounded-xl px-3 py-2 text-sm">Log quét QR</a>
         @endif
         @if(session('chuc_vu') === 'superadmin')

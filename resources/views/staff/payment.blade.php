@@ -99,6 +99,41 @@
             {{-- ── Thanh toán ── --}}
             <form method="POST" action="{{ route('payment.process', $order->ma_order) }}" class="mt-4 border-t border-[#522C25]/10 pt-4">
                 @csrf
+
+                {{-- ── Thẻ thành viên / Đổi điểm ── --}}
+                <div id="loyalty-panel" class="mb-3 rounded-xl border border-[#522C25]/10 bg-[#FAF7F2] p-3"
+                     data-total="{{ (int) $tongTien }}"
+                     data-lookup="{{ route('payment.card-lookup', $order->ma_order) }}">
+                    <p class="mb-2 text-xs font-semibold text-[#8B5A2B]">Thẻ thành viên / Đổi điểm</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="loy-q" placeholder="UID thẻ hoặc SĐT khách" autocomplete="off"
+                               class="w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm focus:border-[#8B5A2B] focus:ring-[#8B5A2B]">
+                        <button type="button" id="loy-lookup"
+                                class="shrink-0 rounded-lg bg-[#1A1A1A] px-3 py-2 text-sm font-semibold text-white hover:bg-black">Tra cứu</button>
+                    </div>
+                    <p id="loy-msg" class="mt-1 text-[11px] text-[#BB0011]"></p>
+
+                    <div id="loy-info" class="mt-2 hidden rounded-lg bg-white p-3 ring-1 ring-[#522C25]/10">
+                        <p class="text-sm">Khách: <b id="loy-name">—</b>
+                            · Số dư <b id="loy-diem">0</b> điểm
+                            · Hạng <span id="loy-hang" class="rounded-full bg-[#FFF7E8] px-2 py-0.5 text-[11px] font-semibold text-[#8B5A2B]">—</span></p>
+                        <div class="mt-2 flex flex-wrap items-end gap-2">
+                            <div>
+                                <label class="mb-1 block text-[11px] font-semibold text-[#522C25]/55">Đổi (điểm)</label>
+                                <input type="number" id="loy-input" min="0" step="1" value="0"
+                                       class="w-28 rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm">
+                            </div>
+                            <button type="button" id="loy-max"
+                                    class="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-[#8B5A2B] ring-1 ring-[#8B5A2B]/25 hover:bg-[#FFF7E8]">Đổi tối đa</button>
+                            <p class="text-sm">Giảm: <b id="loy-giam" class="text-[#BB0011]">0đ</b></p>
+                        </div>
+                        <button type="button" id="loy-clear" class="mt-2 text-[11px] text-[#522C25]/55 underline">Bỏ áp dụng thẻ</button>
+                    </div>
+
+                    <input type="hidden" name="ma_the" id="loy-ma-the" value="">
+                    <input type="hidden" name="so_diem_doi" id="loy-so-diem" value="0">
+                </div>
+
                 <div class="grid gap-3 sm:grid-cols-2">
                     <div>
                         <label class="mb-1 block text-xs font-medium text-[#522C25]/65">Chiết khấu (%)</label>
@@ -184,6 +219,75 @@ document.addEventListener('DOMContentLoaded', () => {
 
     method.addEventListener('change', syncQr);
     syncQr();
+});
+</script>
+
+<script>
+// ── Thẻ thành viên: tra cứu + tính giảm giá theo điểm ──
+document.addEventListener('DOMContentLoaded', () => {
+    const panel = document.getElementById('loyalty-panel');
+    if (!panel) return;                       // đơn đã thanh toán → không có panel
+    const total = parseInt(panel.dataset.total || '0', 10);
+    const lookupUrl = panel.dataset.lookup;
+    const $ = (id) => document.getElementById(id);
+    const ckInput = document.querySelector('input[name="chiet_khau"]');
+
+    let cfg = null;     // { point_value, min_redeem, max_redeem_pct }
+    let balance = 0;
+
+    const fmt = (n) => new Intl.NumberFormat('vi-VN').format(Math.round(n)) + 'đ';
+    const netTotal = () => {
+        const ck = Math.min(100, Math.max(0, parseFloat(ckInput?.value || '0') || 0));
+        return Math.round(total * (1 - ck / 100));
+    };
+    const maxRedeemable = () => {
+        if (!cfg || cfg.point_value <= 0) return 0;
+        const byBill = Math.floor(netTotal() * cfg.max_redeem_pct / 100 / cfg.point_value);
+        return Math.max(0, Math.min(balance, byBill));
+    };
+    const clearHidden = () => { $('loy-ma-the').value = ''; $('loy-so-diem').value = 0; };
+
+    async function lookup() {
+        const q = $('loy-q').value.trim();
+        $('loy-msg').textContent = '';
+        if (!q) { $('loy-msg').textContent = 'Nhập UID thẻ hoặc SĐT.'; return; }
+        try {
+            const r = await fetch(lookupUrl + '?q=' + encodeURIComponent(q), { headers: { Accept: 'application/json' } });
+            const d = await r.json();
+            if (!d.ok) { $('loy-msg').textContent = d.message || 'Không tìm thấy thẻ.'; $('loy-info').classList.add('hidden'); clearHidden(); return; }
+            cfg = { point_value: d.point_value, min_redeem: d.min_redeem, max_redeem_pct: d.max_redeem_pct };
+            balance = d.diem;
+            $('loy-name').textContent = d.ten_kh || d.ma_the;
+            $('loy-diem').textContent = d.diem;
+            $('loy-hang').textContent = d.hang_the;
+            $('loy-ma-the').value = d.ma_the;
+            $('loy-input').value = 0;
+            $('loy-info').classList.remove('hidden');
+            recompute();
+        } catch (e) { $('loy-msg').textContent = 'Lỗi tra cứu thẻ.'; }
+    }
+
+    function recompute() {
+        if (!cfg) return;
+        let pts = parseInt($('loy-input').value || '0', 10);
+        if (isNaN(pts) || pts < 0) pts = 0;
+        const max = maxRedeemable();
+        if (pts > max) { pts = max; $('loy-input').value = pts; }
+        $('loy-msg').textContent = (pts > 0 && pts < cfg.min_redeem) ? ('Đổi tối thiểu ' + cfg.min_redeem + ' điểm.') : '';
+        const apply = (pts >= cfg.min_redeem) ? pts : 0;
+        $('loy-so-diem').value = apply;
+        $('loy-giam').textContent = fmt(apply * cfg.point_value);
+    }
+
+    $('loy-lookup').addEventListener('click', lookup);
+    $('loy-q').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); lookup(); } });
+    $('loy-input').addEventListener('input', recompute);
+    $('loy-max').addEventListener('click', () => { $('loy-input').value = maxRedeemable(); recompute(); });
+    if (ckInput) ckInput.addEventListener('input', recompute);
+    $('loy-clear').addEventListener('click', () => {
+        cfg = null; balance = 0; $('loy-info').classList.add('hidden');
+        $('loy-q').value = ''; $('loy-msg').textContent = ''; clearHidden();
+    });
 });
 </script>
 @endsection

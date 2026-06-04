@@ -192,6 +192,19 @@ class LoyaltyService
      */
     public function redeem(TheThanhVien $card, int $soDiem, ?float $tongHoaDon = null, ?string $maOrder = null, ?string $maThietBi = null): int
     {
+        $quote = $this->quoteRedemption($card, $soDiem, $tongHoaDon);
+        return $this->applyRedemption($card, $quote['so_diem'], $quote['tien_giam'], $maOrder, null, $maThietBi);
+    }
+
+    /**
+     * Kiểm tra & tính toán đổi điểm (KHÔNG ghi DB). Tự áp trần max_redeem_pct
+     * nếu biết tổng hóa đơn.
+     *
+     * @return array{so_diem:int, tien_giam:int}
+     * @throws ValidationException
+     */
+    public function quoteRedemption(TheThanhVien $card, int $soDiem, ?float $tongHoaDon = null): array
+    {
         $min = (int) config('loyalty.min_redeem', 100);
         $value = (int) config('loyalty.point_value', 50);
 
@@ -218,9 +231,13 @@ class LoyaltyService
             }
         }
 
-        $tienGiam = $soDiem * $value;
+        return ['so_diem' => $soDiem, 'tien_giam' => $soDiem * $value];
+    }
 
-        return DB::transaction(function () use ($card, $soDiem, $tienGiam, $maOrder, $maThietBi) {
+    /** Ghi sổ đổi điểm + trừ số dư (số liệu đã qua quoteRedemption). Trả tiền giảm. */
+    public function applyRedemption(TheThanhVien $card, int $soDiem, int $tienGiam, ?string $maOrder = null, ?string $maHoaDon = null, ?string $maThietBi = null): int
+    {
+        return DB::transaction(function () use ($card, $soDiem, $tienGiam, $maOrder, $maHoaDon, $maThietBi) {
             $card = TheThanhVien::whereKey($card->ma_the)->lockForUpdate()->first();
             $card->diem_hien_tai -= $soDiem;
             $card->save();
@@ -233,12 +250,37 @@ class LoyaltyService
                 'so_diem_sau'       => $card->diem_hien_tai,
                 'so_tien_lien_quan' => $tienGiam,
                 'ma_order'          => $maOrder,
+                'ma_hoa_don'        => $maHoaDon,
                 'ma_thiet_bi'       => $maThietBi,
                 'mo_ta'             => "Doi {$soDiem} diem lay {$tienGiam}d giam gia.",
                 'thoi_gian'         => now(),
             ]);
 
             return $tienGiam;
+        });
+    }
+
+    /** Điều chỉnh điểm thủ công (admin). $soDiem CÓ DẤU (+ cộng / - trừ). */
+    public function adjust(TheThanhVien $card, int $soDiem, string $lyDo = ''): GiaoDichDiem
+    {
+        return DB::transaction(function () use ($card, $soDiem, $lyDo) {
+            $card = TheThanhVien::whereKey($card->ma_the)->lockForUpdate()->first();
+            $card->diem_hien_tai = max(0, $card->diem_hien_tai + $soDiem);
+            if ($soDiem > 0) {
+                $card->tong_diem_tich_luy += $soDiem;
+            }
+            $card->hang_the = $this->tierForPoints($card->tong_diem_tich_luy);
+            $card->save();
+
+            return GiaoDichDiem::create([
+                'ma_the'      => $card->ma_the,
+                'ma_kh'       => $card->ma_kh,
+                'loai'        => 'dieu_chinh',
+                'so_diem'     => $soDiem,
+                'so_diem_sau' => $card->diem_hien_tai,
+                'mo_ta'       => $lyDo !== '' ? $lyDo : 'Dieu chinh thu cong',
+                'thoi_gian'   => now(),
+            ]);
         });
     }
 

@@ -88,6 +88,15 @@ Route::middleware(['auth.staff'])->group(function () {
         Route::get('/', [\App\Http\Controllers\KhachHangController::class, 'index'])->name('index');
     });
 
+    // ── THẺ THÀNH VIÊN RFID + ĐIỂM (superadmin + admin) ──────
+    Route::middleware('role:superadmin,admin')->prefix('the-thanh-vien')->name('loyalty.')->group(function () {
+        Route::get('/',                     [\App\Http\Controllers\LoyaltyController::class, 'index']       )->name('index');
+        Route::post('/phat-the',            [\App\Http\Controllers\LoyaltyController::class, 'issue']       )->name('issue');
+        Route::get('/{ma_the}',             [\App\Http\Controllers\LoyaltyController::class, 'show']        )->name('show');
+        Route::post('/{ma_the}/trang-thai', [\App\Http\Controllers\LoyaltyController::class, 'updateStatus'])->name('status');
+        Route::post('/{ma_the}/dieu-chinh', [\App\Http\Controllers\LoyaltyController::class, 'adjust']      )->name('adjust');
+    });
+
     // ── LOG QUÉT QR (superadmin + admin) ─────────────────────
     Route::middleware('role:superadmin,admin')->get('/scan-log', [QrController::class, 'scanLog'])->name('scanlog.index');
 
@@ -123,6 +132,7 @@ Route::middleware(['auth.staff'])->group(function () {
         Route::get( '/{ma_order}',       [PaymentController::class, 'show']    )->name('show');
         Route::post('/{ma_order}',       [PaymentController::class, 'process'] )->name('process');
         Route::post('/{ma_order}/vnpay', [PaymentController::class, 'payVnpay'])->name('vnpay.create');
+        Route::get( '/{ma_order}/card-lookup', [PaymentController::class, 'cardLookup'])->name('card-lookup');
     });
 
     // ── HÓA ĐƠN IN (bán hàng / nhập kho) ─────────────────────

@@ -52,11 +52,15 @@ class PaymentController extends Controller
         $request->validate([
             'chiet_khau'     => 'required|numeric|min:0|max:100',
             'phuong_thuc_tt' => 'required|in:tien_mat,chuyen_khoan,the,vi_dien_tu,momo,vnpay',
+            'ma_the'         => 'nullable|string|max:20',
+            'so_diem_doi'    => 'nullable|integer|min:0',
         ]);
 
         $chietKhau   = (float)  $request->input('chiet_khau', 0);
         $phuongThuc  = (string) $request->input('phuong_thuc_tt', '');
         $maNv        = (string) (session('ma_nv') ?? '');
+        $maThe       = $request->filled('ma_the') ? (string) $request->input('ma_the') : null;
+        $soDiemDoi   = (int) $request->input('so_diem_doi', 0);
 
         try {
             $maHoaDon = $this->paymentService->createInvoice(
@@ -64,6 +68,8 @@ class PaymentController extends Controller
                 chietKhau:   $chietKhau,
                 phuongThuc:  $phuongThuc,
                 maNvThuNgan: $maNv,
+                maThe:       $maThe,
+                soDiemDoi:   $soDiemDoi,
             );
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
@@ -72,6 +78,48 @@ class PaymentController extends Controller
         // Ở lại trang thanh toán để hiện kết quả + in hóa đơn (không nhảy về danh sách đơn)
         return redirect()->route('payment.show', $maOrder)
                          ->with('success', "Thanh toán thành công! Hóa đơn: {$maHoaDon}");
+    }
+
+    /**
+     * Tra cứu thẻ thành viên ở màn POS (AJAX). Nhận `q` = UID thẻ hoặc SĐT khách.
+     * Trả JSON số dư điểm + cấu hình quy đổi để tính giảm giá phía client.
+     */
+    public function cardLookup(Request $request, string $maOrder)
+    {
+        $q = strtoupper(trim((string) $request->query('q', '')));
+        if ($q === '') {
+            return response()->json(['ok' => false, 'message' => 'Nhập UID thẻ hoặc số điện thoại.'], 422);
+        }
+
+        $loyalty = app(\App\Services\LoyaltyService::class);
+
+        // Thử theo UID trước, sau đó theo SĐT (qua blind index).
+        $card = \App\Models\TheThanhVien::with('khachHang')->where('uid_rfid', $q)->first();
+        if (! $card && preg_match('/^0[0-9]{9}$/', $q)) {
+            $kh = $loyalty->findCustomerByPhone($q);
+            if ($kh) {
+                $card = \App\Models\TheThanhVien::with('khachHang')
+                    ->where('ma_kh', $kh->ma_kh)->where('trang_thai', 'hoat_dong')->first();
+            }
+        }
+
+        if (! $card) {
+            return response()->json(['ok' => false, 'message' => 'Không tìm thấy thẻ thành viên.'], 404);
+        }
+        if (! $card->dangHoatDong()) {
+            return response()->json(['ok' => false, 'message' => 'Thẻ đang bị khóa hoặc báo mất.'], 422);
+        }
+
+        return response()->json([
+            'ok'             => true,
+            'ma_the'         => $card->ma_the,
+            'ten_kh'         => $card->khachHang?->ten_kh,
+            'diem'           => (int) $card->diem_hien_tai,
+            'hang_the'       => $card->hang_the,
+            'point_value'    => (int) config('loyalty.point_value', 50),
+            'min_redeem'     => (int) config('loyalty.min_redeem', 100),
+            'max_redeem_pct' => (int) config('loyalty.max_redeem_pct', 50),
+        ]);
     }
 
     // ─────────────────────────────────────────────────────────────
