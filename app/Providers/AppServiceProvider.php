@@ -2,6 +2,9 @@
 
 namespace App\Providers;
 
+use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 
@@ -20,5 +23,8 @@ class AppServiceProvider extends ServiceProvider
         if (filter_var(env('FORCE_HTTPS', false), FILTER_VALIDATE_BOOL)) {
             URL::forceScheme('https');
         }
+
+        // Rate limiter cho nhóm route API (thiết bị Arduino gọi vào).
+        RateLimiter::for('api', fn (Request $request) => Limit::perMinute(120)->by($request->ip()));
     }
 }

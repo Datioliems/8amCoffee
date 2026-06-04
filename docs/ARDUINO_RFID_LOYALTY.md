@@ -97,21 +97,31 @@ trần `max_redeem_pct`; trả về **số tiền giảm** = `soDiem × point_va
 
 ---
 
-## 5. Kiến trúc Arduino ↔ Hệ thống (bước kế tiếp: REST API)
+## 5. Kiến trúc Arduino ↔ Hệ thống (REST API — đã hiện thực)
 
-Phần cứng đề xuất: **ESP32 / Arduino + đầu đọc RC522 (RFID 13.56MHz)**. Vì RC522 dùng SPI và cần
-Wi-Fi để gọi HTTPS, **ESP32** là lựa chọn thực tế nhất.
+Phần cứng đề xuất: **ESP32 + đầu đọc RC522 (RFID 13.56MHz)**. Vì RC522 dùng SPI và cần Wi-Fi để
+gọi HTTPS, **ESP32** là lựa chọn thực tế nhất.
 
-Luồng đề xuất (API sẽ thêm ở bước sau — DB đã sẵn sàng):
 ```
-[Thẻ RFID] --tap--> [ESP32 + RC522] --HTTPS POST {uid, device, token}--> [Laravel API]
-     → xác thực thiết bị (api_key_hash) → tra THE_THANH_VIEN theo uid
-     → trả về: tên khách (giải mã hiển thị), số dư điểm, hạng thẻ
+[Thẻ RFID] --tap--> [ESP32 + RC522] --HTTPS POST {uid} + header thiết bị--> [Laravel API]
+     → middleware 'arduino.device' xác thực (sha256(token) == api_key_hash)
+     → tra THE_THANH_VIEN theo uid → trả tên khách (giải mã), số dư điểm, hạng thẻ
      → tích/đổi điểm theo thao tác tại quầy → ghi GIAO_DICH_DIEM + LICH_SU_QUET_THE
 ```
-Gợi ý endpoint (chưa hiện thực trong turn này):
-`POST /api/arduino/quet` (nhận diện), `POST /api/arduino/tich-diem`, `POST /api/arduino/doi-diem`,
-`POST /api/arduino/phat-the` — tất cả xác thực bằng header token thiết bị.
+
+Endpoint (đã làm — nhóm route `/api/arduino`, header `X-Device-Id` + `X-Device-Token`):
+| Path | Chức năng |
+|---|---|
+| `POST /api/arduino/quet` | Nhận diện thẻ (tên khách, điểm, hạng) |
+| `POST /api/arduino/phat-the` | Phát thẻ + điểm khởi tạo theo chi tiêu |
+| `POST /api/arduino/tich-diem` | Tích điểm thủ công |
+| `POST /api/arduino/doi-diem` | Đổi điểm lấy giảm giá |
+| `POST /api/arduino/heartbeat` | Báo sống / đồng bộ giờ |
+
+Mã nguồn: controller `app/Http/Controllers/Api/ArduinoController.php`, middleware
+`app/Http/Middleware/ArduinoDeviceAuth.php`, routes `routes/api.php`. **Firmware ESP32** +
+hướng dẫn đấu nối: thư mục **`arduino/`** (`arduino/8am_rfid_reader/8am_rfid_reader.ino`,
+`arduino/README.md`).
 
 ---
 
