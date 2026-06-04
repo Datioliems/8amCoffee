@@ -1,14 +1,86 @@
-# 8AM Coffee — Đầu đọc thẻ RFID (ESP32 + RC522)
+# 8AM Coffee — Đầu đọc thẻ RFID
 
-Firmware Arduino IDE cho đầu đọc thẻ thành viên RFID, giao tiếp với hệ thống Laravel
-qua REST API (`/api/arduino/*`). Sketch: [`8am_rfid_reader/8am_rfid_reader.ino`](8am_rfid_reader/8am_rfid_reader.ino).
+Đầu đọc thẻ thành viên RFID, giao tiếp với hệ thống Laravel qua REST API (`/api/arduino/*`).
 
-> **Lưu ý phần cứng:** dùng **ESP32** (có WiFi). Arduino UNO/Nano **không có WiFi** nên không
-> chạy được firmware này (nếu bắt buộc UNO thì cần thêm shield ESP8266/Ethernet — không khuyến nghị).
+**Hai phương án phần cứng:**
+
+| | A. Arduino UNO + LCD 1602 (I2C) | B. ESP32 |
+|---|---|---|
+| Mạng | UNO **không có WiFi** → cần **bridge** chạy trên PC (qua USB) | ESP32 **tự gọi API** qua WiFi |
+| Sketch | [`8am_uno_rfid_lcd/`](8am_uno_rfid_lcd/8am_uno_rfid_lcd.ino) | [`8am_rfid_reader/`](8am_rfid_reader/8am_rfid_reader.ino) |
+| Bridge | [`bridge/`](bridge/) (Node) — **bắt buộc** | không cần |
+
+> Bạn đang dùng **Phương án A (UNO + LCD)** → đọc mục **A** ngay dưới. Mục 1–7 là cho ESP32.
 
 ---
 
-## 1. Phần cứng & đấu nối (RC522 ↔ ESP32)
+## A. Arduino UNO + LCD 1602 I2C (qua bridge PC)
+
+UNO không lên mạng được, nên: **UNO đọc thẻ + hiện LCD + gửi UID qua USB** → **bridge** trên PC
+gọi API → trả kết quả về LCD.
+
+### A.1 Đấu nối (đúng phần cứng đang dùng)
+
+**RC522 (SPI) ↔ UNO**
+
+| RC522 | UNO |
+|------|-----|
+| RST  | D9 |
+| SDA (SS) | D10 |
+| MOSI | D11 |
+| MISO | D12 |
+| SCK  | D13 |
+| 3.3V | 3.3V (**không cấp 5V**) |
+| GND  | GND |
+
+**LCD 1602A V2.0 (I2C) ↔ UNO**
+
+| LCD | UNO |
+|-----|-----|
+| GND | GND |
+| VCC | 5V |
+| SDA | A4 |
+| SCL | A5 |
+
+> Chân SPI của UNO ở mức 5V còn RC522 danh định 3.3V — thường vẫn chạy; dùng level shifter sẽ bền hơn.
+
+### A.2 Nạp firmware (Arduino IDE)
+
+1. Board: **Arduino Uno**. Thư viện (Library Manager): **MFRC522** (GithubCommunity) và
+   **LiquidCrystal I2C** (Frank de Brabander).
+2. Mở [`8am_uno_rfid_lcd/8am_uno_rfid_lcd.ino`](8am_uno_rfid_lcd/8am_uno_rfid_lcd.ino) → Upload.
+3. Nếu LCD sáng nền nhưng **không hiện chữ** → đổi địa chỉ I2C trong sketch từ `0x27` sang `0x3F`
+   (hoặc nạp sketch "I2C Scanner" để tìm địa chỉ đúng).
+
+### A.3 Chạy bridge trên PC
+
+```bash
+cd arduino/bridge
+npm install
+# Windows (đổi COM3 thành cổng UNO trong Device Manager; API_BASE trỏ tới app):
+set PORT=COM3 && set API_BASE=http://localhost:8000/api/arduino && npm start
+```
+Biến cấu hình: `PORT` (cổng COM), `BAUD` (mặc định 9600), `API_BASE`, `DEVICE_ID`, `DEVICE_TOKEN`
+(khớp bản ghi `THIET_BI_ARDUINO`; xem mục **4** để đăng ký thiết bị).
+
+**Thao tác:**
+- **Quẹt thẻ** → bridge tự gọi `/quet`, hiện **tên khách + điểm** lên LCD và in ra console.
+- Gõ ở cửa sổ bridge (trên thẻ vừa quẹt): `P 0901234567` (phát thẻ), `T 50000` (tích), `D 200` (đổi).
+
+### A.4 Giao thức Serial (UNO ↔ bridge), 9600 baud
+
+| Chiều | Bản tin | Ý nghĩa |
+|---|---|---|
+| UNO → PC | `READY` | đầu đọc khởi động xong |
+| UNO → PC | `UID:04A1B2C3` | vừa quẹt thẻ |
+| PC → UNO | `L1:<text>` / `L2:<text>` | ghi dòng 1 / dòng 2 LCD (≤16 ký tự, không dấu) |
+
+> Việc **đổi điểm chính** vẫn nên làm ở **POS web** (màn Thanh toán → khung "Thẻ thành viên/Đổi điểm").
+> Đầu đọc UNO chủ yếu để **tra nhanh số dư** tại quầy và thao tác phụ qua bridge.
+
+---
+
+## 1. (ESP32) Phần cứng & đấu nối (RC522 ↔ ESP32)
 
 | RC522 | ESP32 | Ghi chú |
 |------|-------|---------|

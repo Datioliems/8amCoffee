@@ -1,0 +1,14 @@
+{
+    "name": "8am-rfid-bridge",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "Cau noi Arduino UNO (RC522 + LCD) voi API loyalty cua 8AM Coffee",
+    "scripts": {
+        "start": "node 8am-rfid-bridge.mjs"
+    },
+    "dependencies": {
+        "serialport": "^12.0.0",
+        "@serialport/parser-readline": "^12.0.0"
+    }
+}
