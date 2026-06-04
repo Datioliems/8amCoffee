@@ -78,6 +78,20 @@ Biến cấu hình: `PORT` (cổng COM), `BAUD` (mặc định 9600), `API_BASE`
 > Việc **đổi điểm chính** vẫn nên làm ở **POS web** (màn Thanh toán → khung "Thẻ thành viên/Đổi điểm").
 > Đầu đọc UNO chủ yếu để **tra nhanh số dư** tại quầy và thao tác phụ qua bridge.
 
+### A.5 LCD không hiện chữ? (khắc phục theo thứ tự)
+
+1. **Dò địa chỉ:** nạp [`i2c_scanner/`](i2c_scanner/i2c_scanner.ino) → mở Serial Monitor (9600).
+   Nó in `0x27` hoặc `0x3F` → điền địa chỉ đó vào sketch (`LiquidCrystal_I2C lcd(0xXX, 16, 2);`).
+   Nếu **không thấy thiết bị nào** → lỗi dây: kiểm tra **SDA→A4, SCL→A5, VCC→5V, GND→GND** và mối hàn.
+2. **Vặn biến trở tương phản:** trên lưng LCD có **chiết áp xanh** — vặn từ từ. Sai contrast khiến
+   **nền sáng mà không thấy chữ** (đây là nguyên nhân phổ biến nhất).
+3. **Test riêng LCD:** nạp [`lcd_test/`](lcd_test/lcd_test.ino) (chỉ in "8AM Coffee / LCD OK!") để
+   tách LCD khỏi phần RFID.
+4. **Nguồn:** I2C backpack cần **5V** (cấp 3.3V thường yếu → mờ/không hiện). VCC phải vào **5V**, không phải 3.3V.
+5. **Sai hàm thư viện:** nếu IDE báo lỗi `'init' was not declared` → đổi `lcd.init();` thành `lcd.begin();`
+   (có 2–3 thư viện trùng tên "LiquidCrystal I2C"; cài bản của *Frank de Brabander*).
+6. **Jumper đèn nền:** đảm bảo còn jumper backlight trên backpack (nếu nền không sáng).
+
 ---
 
 ## 1. (ESP32) Phần cứng & đấu nối (RC522 ↔ ESP32)
