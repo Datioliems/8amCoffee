@@ -14,6 +14,16 @@ class PhieuNhapKho extends Model
 
     protected $fillable = ['ma_pnk','ngay_nk','ma_ncc','ma_nv','ma_chi_nhanh','tong_gia_tri','trang_thai','ghi_chu'];
 
+    /** Tự điền ngày nhập nếu không truyền (tránh phụ thuộc default DB). */
+    protected static function booted(): void
+    {
+        static::creating(function (self $m) {
+            if (empty($m->ngay_nk)) {
+                $m->ngay_nk = now()->toDateString();
+            }
+        });
+    }
+
     public function nhaCungCap()      { return $this->belongsTo(NhaCungCap::class, 'ma_ncc', 'ma_ncc'); }
     public function nhanVien()        { return $this->belongsTo(NhanVien::class, 'ma_nv', 'ma_nv'); }
     public function chiTietNhapKhos() { return $this->hasMany(ChiTietNhapKho::class, 'ma_pnk', 'ma_pnk'); }
