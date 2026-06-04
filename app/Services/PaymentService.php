@@ -84,6 +84,14 @@ class PaymentService
                 'created_at' => now(),
             ]);
 
+            // Tích điểm thẻ thành viên RFID (nếu khách có thẻ đang hoạt động).
+            // Bọc try/catch: lỗi loyalty KHÔNG được làm hỏng giao dịch thanh toán.
+            try {
+                app(LoyaltyService::class)->earnForCustomer($order->ma_kh, (float) $tongSau, $maOrder, $maHoaDon);
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Loyalty earn failed for ' . $maOrder . ': ' . $e->getMessage());
+            }
+
             return $maHoaDon;
         });
     }
