@@ -16,6 +16,16 @@ class PhieuKiemKe extends Model
 
     protected $casts = ['thoi_gian_kk' => 'datetime'];
 
+    /** Tự điền ngày kiểm kê nếu không truyền (tránh phụ thuộc default DB). */
+    protected static function booted(): void
+    {
+        static::creating(function (self $m) {
+            if (empty($m->ngay_kk)) {
+                $m->ngay_kk = now()->toDateString();
+            }
+        });
+    }
+
     public function chiNhanh() { return $this->belongsTo(ChiNhanh::class, 'ma_chi_nhanh', 'ma_chi_nhanh'); }
 
     public function nhanVien()       { return $this->belongsTo(NhanVien::class, 'ma_nv', 'ma_nv'); }
