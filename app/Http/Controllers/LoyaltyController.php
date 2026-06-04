@@ -48,7 +48,10 @@ class LoyaltyController extends Controller
             'tong_diem'  => (int) TheThanhVien::where('trang_thai', 'hoat_dong')->sum('diem_hien_tai'),
         ];
 
-        return view('staff.loyalty.index', compact('cards', 'q', 'trangThai', 'thongKe'));
+        // Khách đủ điều kiện phát thẻ (chọn trong dropdown khi phát thẻ).
+        $eligible = $this->loyalty->eligibleForCard();
+
+        return view('staff.loyalty.index', compact('cards', 'q', 'trangThai', 'thongKe', 'eligible'));
     }
 
     public function show(string $maThe)
@@ -60,19 +63,25 @@ class LoyaltyController extends Controller
         return view('staff.loyalty.show', compact('card', 'ledger', 'ledgerBalance'));
     }
 
-    /** Phát thẻ thủ công từ giao diện admin (theo UID + SĐT khách). */
+    /** Phát thẻ thủ công: UID + (chọn khách trong danh sách `ma_kh` HOẶC nhập SĐT). */
     public function issue(Request $request)
     {
         $request->validate([
-            'uid' => 'required|string|max:32',
-            'sdt' => ['required', 'string', 'regex:/^0[0-9]{9}$/'],
+            'uid'   => 'required|string|max:32',
+            'ma_kh' => 'nullable|string|max:10',
+            'sdt'   => ['nullable', 'string', 'regex:/^0[0-9]{9}$/'],
         ]);
 
-        $res = $this->loyalty->issueCard(
-            strtoupper(trim($request->input('uid'))),
-            (string) $request->input('sdt'),
-            session('ma_chi_nhanh'),
-        );
+        if (! $request->filled('ma_kh') && ! $request->filled('sdt')) {
+            return back()->with('error', 'Hãy chọn khách trong danh sách hoặc nhập số điện thoại.');
+        }
+
+        $uid = strtoupper(trim($request->input('uid')));
+        $maChiNhanh = session('ma_chi_nhanh');
+
+        $res = $request->filled('ma_kh')
+            ? $this->loyalty->issueCardByMaKh($uid, (string) $request->input('ma_kh'), $maChiNhanh)
+            : $this->loyalty->issueCard($uid, (string) $request->input('sdt'), $maChiNhanh);
 
         return back()->with($res['ok'] ? 'success' : 'error', $res['message']);
     }

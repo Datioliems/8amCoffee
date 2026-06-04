@@ -62,11 +62,32 @@ class LoyaltyService
     public function issueCard(string $uid, string $sdt, ?string $maChiNhanh = null, ?string $maThietBi = null): array
     {
         $uid = strtoupper(trim($uid));
-
         $kh = $this->findCustomerByPhone($sdt);
         if (! $kh) {
             $this->logScan($uid, 'phat_the', 'that_bai', $maThietBi, $maChiNhanh, 'Khong tim thay khach theo SDT');
             return ['ok' => false, 'message' => 'Không tìm thấy khách hàng có số điện thoại này (khách cần có lịch sử giao dịch).'];
+        }
+        return $this->issueForCustomer($uid, $kh, $maChiNhanh, $maThietBi);
+    }
+
+    /** Phát thẻ theo mã khách (chọn từ danh sách đủ điều kiện). */
+    public function issueCardByMaKh(string $uid, string $maKh, ?string $maChiNhanh = null, ?string $maThietBi = null): array
+    {
+        $uid = strtoupper(trim($uid));
+        $kh = KhachHang::find($maKh);
+        if (! $kh) {
+            $this->logScan($uid, 'phat_the', 'that_bai', $maThietBi, $maChiNhanh, 'Khong tim thay khach theo ma_kh');
+            return ['ok' => false, 'message' => 'Không tìm thấy khách hàng đã chọn.'];
+        }
+        return $this->issueForCustomer($uid, $kh, $maChiNhanh, $maThietBi);
+    }
+
+    /** Lõi phát thẻ cho một khách đã xác định. */
+    private function issueForCustomer(string $uid, KhachHang $kh, ?string $maChiNhanh = null, ?string $maThietBi = null): array
+    {
+        $uid = strtoupper(trim($uid));
+        if ($uid === '') {
+            return ['ok' => false, 'message' => 'Thiếu UID thẻ (hãy quẹt thẻ).'];
         }
 
         $spend = $this->lifetimeSpend($kh->ma_kh);
@@ -133,6 +154,55 @@ class LoyaltyService
                 'ten_kh'  => Pii::tryDecrypt($kh->getRawOriginal('ten_kh') ?? ''),
             ];
         });
+    }
+
+    /**
+     * Danh sách khách ĐỦ ĐIỀU KIỆN phát thẻ: tổng chi tiêu ≥ mốc VÀ chưa có thẻ
+     * đang hoạt động. Trả tên (đã giải mã) + SĐT che + tổng chi tiêu.
+     *
+     * @return array<int,array{ma_kh:string, ten_kh:string, sdt_che:string, tong:float}>
+     */
+    public function eligibleForCard(): array
+    {
+        $threshold = (int) config('loyalty.issue_threshold');
+
+        $daCoThe = TheThanhVien::whereNotNull('ma_kh')
+            ->where('trang_thai', 'hoat_dong')->pluck('ma_kh')->all();
+
+        $rows = DB::table('HOA_DON')
+            ->selectRaw('ma_kh, SUM(tong_tien_sau_ck) as tong')
+            ->whereNotNull('ma_kh')
+            ->groupBy('ma_kh')
+            ->havingRaw('SUM(tong_tien_sau_ck) >= ?', [$threshold])
+            ->get()
+            ->keyBy('ma_kh');
+
+        $maKhs = array_values(array_diff($rows->keys()->all(), $daCoThe));
+        if (empty($maKhs)) {
+            return [];
+        }
+
+        $out = [];
+        foreach (KhachHang::whereIn('ma_kh', $maKhs)->get() as $kh) {
+            $out[] = [
+                'ma_kh'   => $kh->ma_kh,
+                'ten_kh'  => (string) $kh->ten_kh,                       // cast tự giải mã
+                'sdt_che' => $this->maskPhone((string) $kh->sdt),
+                'tong'    => (float) ($rows[$kh->ma_kh]->tong ?? 0),
+            ];
+        }
+        usort($out, fn ($a, $b) => $b['tong'] <=> $a['tong']);
+        return $out;
+    }
+
+    /** Che bớt SĐT để hiển thị: 0901234567 → 090***567. */
+    private function maskPhone(string $sdt): string
+    {
+        $d = preg_replace('/\D/', '', $sdt);
+        if (strlen((string) $d) < 7) {
+            return $sdt;
+        }
+        return substr($d, 0, 3) . '***' . substr($d, -3);
     }
 
     /**

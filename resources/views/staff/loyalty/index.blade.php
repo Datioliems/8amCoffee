@@ -37,20 +37,41 @@
         <form method="POST" action="{{ route('loyalty.issue') }}" class="rounded-2xl border border-[#522C25]/10 bg-white p-4 shadow-sm">
             @csrf
             <p class="mb-2 text-sm font-semibold text-[#8B5A2B]">Phát thẻ mới</p>
-            <div class="flex flex-wrap items-end gap-2">
-                <div class="grow">
-                    <label class="mb-1 block text-[11px] font-semibold text-[#522C25]/55">UID thẻ (hex)</label>
-                    <input type="text" name="uid" required placeholder="04A1B2C3"
-                           class="w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm">
-                </div>
-                <div class="grow">
-                    <label class="mb-1 block text-[11px] font-semibold text-[#522C25]/55">SĐT khách</label>
-                    <input type="text" name="sdt" required inputmode="numeric" pattern="0[0-9]{9}" placeholder="0901234567"
-                           class="w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm">
-                </div>
-                <button class="rounded-lg bg-[#1A1A1A] px-4 py-2 text-sm font-semibold text-white hover:bg-black">Phát thẻ</button>
+
+            {{-- UID + đọc thẻ tự động qua đầu đọc (Web Serial) --}}
+            <label class="mb-1 block text-[11px] font-semibold text-[#522C25]/55">UID thẻ (hex)</label>
+            <div class="flex gap-2">
+                <input type="text" name="uid" id="uid-input" required placeholder="Quẹt thẻ hoặc gõ UID"
+                       class="w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm font-mono transition">
+                <button type="button" id="rfid-connect"
+                        class="shrink-0 rounded-lg border border-[#8B5A2B]/30 bg-[#FFF7E8] px-3 py-2 text-xs font-semibold text-[#8B5A2B] hover:bg-[#FCEFD6]">
+                    Kết nối đầu đọc
+                </button>
             </div>
-            <p class="mt-1 text-[11px] text-[#522C25]/45">Điểm khởi tạo tính theo tổng chi tiêu của khách (mốc {{ number_format((int) config('loyalty.issue_threshold'), 0, ',', '.') }}đ).</p>
+            <p id="rfid-status" class="mt-1 text-[11px] text-[#522C25]/55">Bấm “Kết nối đầu đọc” rồi quẹt thẻ — UID tự điền (Chrome/Edge, đầu đọc cắm USB).</p>
+
+            {{-- Chọn khách đủ điều kiện --}}
+            <label class="mt-3 mb-1 block text-[11px] font-semibold text-[#522C25]/55">Khách đủ điều kiện (đã đạt mốc, chưa có thẻ)</label>
+            <select name="ma_kh" id="kh-select" class="w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm">
+                <option value="">— Chọn khách —</option>
+                @foreach($eligible as $e)
+                    <option value="{{ $e['ma_kh'] }}">{{ $e['ten_kh'] ?: $e['ma_kh'] }} · {{ $e['sdt_che'] }} · {{ number_format($e['tong'], 0, ',', '.') }}đ</option>
+                @endforeach
+            </select>
+            @if(empty($eligible))
+                <p class="mt-1 text-[11px] text-[#522C25]/45">Chưa có khách đạt mốc {{ number_format((int) config('loyalty.issue_threshold'), 0, ',', '.') }}đ (hoặc tất cả đã có thẻ).</p>
+            @endif
+
+            {{-- Hoặc nhập SĐT thủ công --}}
+            <details class="mt-2">
+                <summary class="cursor-pointer text-[11px] text-[#8B5A2B]">Hoặc nhập SĐT thủ công</summary>
+                <input type="text" name="sdt" inputmode="numeric" pattern="0[0-9]{9}" placeholder="0901234567"
+                       class="mt-1 w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm">
+                <p class="mt-1 text-[11px] text-[#522C25]/45">Dùng khi khách đủ mốc nhưng không có trong danh sách.</p>
+            </details>
+
+            <button class="mt-3 w-full rounded-lg bg-[#1A1A1A] px-4 py-2 text-sm font-semibold text-white hover:bg-black">Phát thẻ</button>
+            <p class="mt-1 text-[11px] text-[#522C25]/45">Điểm khởi tạo = tổng chi tiêu ÷ {{ number_format((int) config('loyalty.earn_per_amount'), 0, ',', '.') }}đ.</p>
         </form>
 
         <form method="GET" class="rounded-2xl border border-[#522C25]/10 bg-white p-4 shadow-sm">
@@ -119,4 +140,61 @@
 
     <div>{{ $cards->links() }}</div>
 </div>
+
+<script>
+// ── Đọc UID tự động từ đầu đọc RFID qua Web Serial (Chrome/Edge) ──
+document.addEventListener('DOMContentLoaded', () => {
+    const btn = document.getElementById('rfid-connect');
+    const statusEl = document.getElementById('rfid-status');
+    const uidInput = document.getElementById('uid-input');
+    const khSelect = document.getElementById('kh-select');
+    if (!btn) return;
+
+    if (!('serial' in navigator)) {
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        statusEl.textContent = 'Trình duyệt không hỗ trợ Web Serial — dùng Chrome/Edge, hoặc gõ UID thủ công.';
+        return;
+    }
+
+    btn.addEventListener('click', async () => {
+        try {
+            const port = await navigator.serial.requestPort();   // hộp thoại chọn cổng UNO
+            await port.open({ baudRate: 9600 });
+            statusEl.textContent = 'Đã kết nối — quẹt thẻ đi...';
+            btn.textContent = 'Đang đọc thẻ ●';
+            btn.disabled = true;
+
+            const decoder = new TextDecoderStream();
+            port.readable.pipeTo(decoder.writable).catch(() => {});
+            const reader = decoder.readable.getReader();
+
+            let buf = '';
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buf += value;
+                let i;
+                while ((i = buf.indexOf('\n')) >= 0) {
+                    const line = buf.slice(0, i).trim();
+                    buf = buf.slice(i + 1);
+                    if (line.startsWith('UID:')) {
+                        const uid = line.slice(4).trim().toUpperCase();
+                        uidInput.value = uid;
+                        uidInput.classList.add('ring-2', 'ring-emerald-400');
+                        statusEl.textContent = (khSelect && !khSelect.value)
+                            ? ('Đã đọc UID ' + uid + ' — giờ chọn khách rồi bấm Phát thẻ.')
+                            : ('Đã đọc UID ' + uid + ' ✓');
+                        setTimeout(() => uidInput.classList.remove('ring-2', 'ring-emerald-400'), 1500);
+                    }
+                }
+            }
+        } catch (e) {
+            statusEl.textContent = 'Không kết nối được: ' + e.message + ' (đóng Serial Monitor / bridge nếu đang giữ cổng).';
+            btn.disabled = false;
+            btn.textContent = 'Kết nối đầu đọc';
+        }
+    });
+});
+</script>
 @endsection
