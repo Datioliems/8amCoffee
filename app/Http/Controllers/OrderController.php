@@ -331,18 +331,6 @@ class OrderController extends Controller
 
     public function createFromQr(StoreOrderRequest $request, string $maBan)
     {
-        // Khóa bàn theo phiên: bàn đã có phiên đang mở của người khác → chặn tạo đơn (phòng khi POST thẳng).
-        $phienDangMo = Order::where('ma_ban', $maBan)
-            ->whereNotIn('trang_thai', ['hoan_thanh', 'da_huy'])
-            ->whereDate('ngay_order', today())
-            ->orderByDesc('ngay_order')->orderByDesc('gio_order')
-            ->first();
-        if ($phienDangMo && ! in_array($phienDangMo->ma_order, (array) session('customer_orders', []), true)) {
-            return $request->expectsJson()
-                ? response()->json(['message' => 'Bàn đang có phiên đặt khác.'], 423)
-                : response()->view('customer.table-busy', ['ban' => \App\Models\Ban::find($maBan)], 423);
-        }
-
         $result = $this->orderService->createOrder(
             maBan:      $maBan,
             tenKh:      $request->ten_kh,
