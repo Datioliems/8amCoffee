@@ -10,12 +10,20 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <style>[x-cloak]{display:none!important}</style>
+    <style>
+        [x-cloak]{display:none!important}
+        /* Thanh cuộn mảnh cho sidebar / menu */
+        .nav-scroll{scrollbar-width:thin;scrollbar-color:rgba(82,44,37,.25) transparent}
+        .nav-scroll::-webkit-scrollbar{width:6px}
+        .nav-scroll::-webkit-scrollbar-track{background:transparent}
+        .nav-scroll::-webkit-scrollbar-thumb{background:rgba(82,44,37,.22);border-radius:9999px}
+        .nav-scroll::-webkit-scrollbar-thumb:hover{background:rgba(82,44,37,.42)}
+    </style>
 </head>
 <body class="bg-[#F6F3F2] text-[#1A1A1A]" x-data="{ mobileNav: false }">
 
 <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-[#522C25]/10 bg-[#FCFAFA] lg:flex">
-    <div class="flex h-20 items-center gap-3 border-b border-[#522C25]/10 px-5">
+    <div class="flex h-20 shrink-0 items-center gap-3 border-b border-[#522C25]/10 px-5">
         <img src="{{ asset('images/logo8am.jpg') }}" alt="8AM Coffee" class="h-11 w-11 rounded-xl object-cover ring-1 ring-[#522C25]/10">
         <div>
             <p class="font-semibold leading-none">8am.coffee</p>
@@ -25,7 +33,7 @@
 
     @if(session('chuc_vu') === 'superadmin')
     @php $__branches = \Illuminate\Support\Facades\DB::table('CHI_NHANH')->orderBy('ma_chi_nhanh')->get(); @endphp
-    <form method="POST" action="{{ route('chinhanh.switch') }}" class="border-b border-[#522C25]/10 px-5 py-3">
+    <form method="POST" action="{{ route('chinhanh.switch') }}" class="shrink-0 border-b border-[#522C25]/10 px-5 py-3">
         @csrf
         <label class="mb-1 block text-[10px] font-semibold uppercase tracking-[0.18em] text-[#522C25]/55">Chi nhánh (chủ chuỗi)</label>
         <select name="ma_chi_nhanh" onchange="this.form.submit()"
@@ -37,7 +45,7 @@
     </form>
     @endif
 
-    <nav class="flex-1 space-y-1 px-3 py-5">
+    <nav class="nav-scroll min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-5">
         @perm('dashboard.view')
         <a href="{{ route('dashboard') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition {{ request()->routeIs('dashboard') ? 'bg-[#1A1A1A] text-white' : 'text-[#522C25] hover:bg-[#F2F2F2]' }}">
             <span class="flex h-8 w-8 items-center justify-center rounded-lg {{ request()->routeIs('dashboard') ? 'bg-white/15' : 'bg-white' }}">
@@ -152,7 +160,7 @@
         @endperm
     </nav>
 
-    <div class="border-t border-[#522C25]/10 p-4">
+    <div class="shrink-0 border-t border-[#522C25]/10 p-4">
         <div class="mb-3 rounded-2xl bg-[#F2F2F2] p-3">
             <p class="text-sm font-semibold">{{ session('ten_nv', 'Nhân viên') }}</p>
             <p class="mt-1 text-xs text-[#522C25]/60">{{ session('chuc_vu', 'nhân viên') }}</p>
@@ -181,7 +189,7 @@
         </div>
     </header>
 
-    <div x-show="mobileNav" @click.outside="mobileNav = false" class="fixed left-4 right-4 top-20 z-50 rounded-2xl bg-white p-3 shadow-xl ring-1 ring-[#522C25]/10 lg:hidden" style="display: none;">
+    <div x-show="mobileNav" @click.outside="mobileNav = false" class="nav-scroll fixed left-4 right-4 top-20 z-50 max-h-[calc(100vh-6rem)] overflow-y-auto rounded-2xl bg-white p-3 shadow-xl ring-1 ring-[#522C25]/10 lg:hidden" style="display: none;">
         @perm('dashboard.view')<a href="{{ route('dashboard') }}" class="block rounded-xl px-3 py-2 text-sm">Tổng quan</a>@endperm
         @perm('analytics.view')<a href="{{ route('analytics.index') }}" class="block rounded-xl px-3 py-2 text-sm">Phân tích AI</a>@endperm
         @perm('orders.manage')<a href="{{ route('orders.index') }}" class="block rounded-xl px-3 py-2 text-sm">Đơn hàng</a>@endperm
