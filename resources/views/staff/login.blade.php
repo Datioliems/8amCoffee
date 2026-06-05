@@ -18,7 +18,7 @@
         <div class="relative flex h-full flex-col justify-between p-10">
             <img src="{{ asset('images/logo8am.jpg') }}" alt="8AM Coffee" class="h-16 w-16 rounded-2xl object-cover ring-1 ring-white/20">
             <div class="max-w-xl">
-                <p class="text-xs uppercase tracking-[0.2em] text-white/65">vận hành 8am</p>ph
+                <p class="text-xs uppercase tracking-[0.2em] text-white/65">vận hành 8am</p>
                 <h1 class="mt-4 text-6xl font-semibold leading-none" style="font-family: Chivo, Inter, sans-serif;">Quản lý ca sáng rõ ràng hơn.</h1>
                 <p class="mt-5 text-base leading-7 text-white/75">Theo dõi đơn hàng, bàn, menu và kho hàng trong một giao diện dành cho vận hành quán.</p>
             </div>
@@ -34,6 +34,12 @@
                 <p class="mt-3 text-sm leading-6 text-[#522C25]/65">Dành cho nhân viên và quản lý chi nhánh.</p>
             </div>
 
+            @if(session('success'))
+            <div class="mb-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800 ring-1 ring-emerald-100">
+                {{ session('success') }}
+            </div>
+            @endif
+
             @if($errors->any())
             <div class="mb-4 rounded-2xl bg-red-50 px-4 py-3 text-sm text-[#BB0011] ring-1 ring-red-100">
                 {{ $errors->first() }}
@@ -44,13 +50,20 @@
                 @csrf
                 <div>
                     <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#522C25]/60">Tên đăng nhập</label>
-                    <input type="text" name="ten_tk" value="{{ old('ten_tk') }}" required
+                    <input type="text" name="ten_tk" value="{{ old('ten_tk') }}" required autocomplete="username"
                            class="w-full rounded-2xl border border-[#522C25]/10 bg-white px-4 py-3 text-sm focus:border-[#E82C2A] focus:ring-[#E82C2A]">
                 </div>
                 <div>
                     <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-[#522C25]/60">Mật khẩu</label>
-                    <input type="password" name="mat_khau" required
+                    <input type="password" name="mat_khau" required autocomplete="current-password"
                            class="w-full rounded-2xl border border-[#522C25]/10 bg-white px-4 py-3 text-sm focus:border-[#E82C2A] focus:ring-[#E82C2A]">
+                </div>
+                <div class="flex items-center justify-between">
+                    <label class="flex select-none items-center gap-2 text-sm text-[#522C25]/75">
+                        <input type="checkbox" name="remember" value="1" class="h-4 w-4 rounded border-[#522C25]/30 text-[#E82C2A] focus:ring-[#E82C2A]">
+                        Ghi nhớ đăng nhập
+                    </label>
+                    <a href="{{ route('password.request') }}" class="text-sm font-medium text-[#8B5A2B] hover:underline">Quên mật khẩu?</a>
                 </div>
                 <button type="submit"
                         class="w-full rounded-full bg-[#1A1A1A] py-3.5 text-sm font-semibold text-white transition hover:bg-[#E82C2A] active:scale-[0.98]">

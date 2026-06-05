@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.staff' => \App\Http\Middleware\AuthMiddleware::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'perm' => \App\Http\Middleware\PermissionMiddleware::class,
             'arduino.device' => \App\Http\Middleware\ArduinoDeviceAuth::class,
         ]);
     })

@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Mail\StaffCredentialsMail;
 use App\Models\EmailLog;
+use App\Models\TaiKhoan;
 use App\Services\EmailVerificationService;
+use App\Support\Perm;
 use App\Support\Pii;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -73,6 +75,58 @@ class NhanVienController extends Controller
             'isSuperAdmin' => $this->isSuperAdmin(),
             'myBranch'     => session('ma_chi_nhanh'),
         ]);
+    }
+
+    /** Form phân quyền cho 1 tài khoản cấp dưới. */
+    public function permissions(string $maTaiKhoan)
+    {
+        $target = TaiKhoan::with('nhanVien')->findOrFail($maTaiKhoan);
+
+        if (! Perm::canEdit((string) session('chuc_vu'), session('ma_chi_nhanh'), $target)) {
+            abort(403, 'Bạn không được sửa quyền của tài khoản này.');
+        }
+
+        // superadmin cấp được mọi quyền; người khác chỉ cấp quyền MÌNH ĐANG CÓ.
+        $grantable = $this->isSuperAdmin() ? array_keys(Perm::catalog()) : Perm::current();
+
+        return view('staff.nhanvien-permissions', [
+            'target'     => $target,
+            'tenNv'      => $target->nhanVien?->ten_nv ?? $target->ten_tk,
+            'catalog'    => Perm::catalog(),
+            'grantable'  => $grantable,
+            'hieuLuc'    => Perm::effectiveFor($target),  // quyền hiện tại của target
+            'theoVaiTro' => $target->quyen === null,       // đang dùng mặc định theo vai trò?
+            'roleLabels' => self::ROLES,
+        ]);
+    }
+
+    /** Lưu phân quyền (KHÔNG leo thang: chỉ cấp/thu quyền mình đang có). */
+    public function updatePermissions(Request $request, string $maTaiKhoan)
+    {
+        $target = TaiKhoan::with('nhanVien')->findOrFail($maTaiKhoan);
+
+        if (! Perm::canEdit((string) session('chuc_vu'), session('ma_chi_nhanh'), $target)) {
+            abort(403, 'Bạn không được sửa quyền của tài khoản này.');
+        }
+
+        $request->validate(['quyen' => 'nullable|array', 'quyen.*' => 'string']);
+
+        // Trả về dùng MẶC ĐỊNH theo vai trò.
+        if ($request->boolean('theo_vai_tro')) {
+            $target->update(['quyen' => null]);
+            return back()->with('success', 'Đã đặt tài khoản dùng quyền mặc định theo vai trò.');
+        }
+
+        $catalog   = array_keys(Perm::catalog());
+        $grantable = $this->isSuperAdmin() ? $catalog : Perm::current();
+
+        $chosen   = array_values(array_intersect((array) $request->input('quyen', []), $catalog, $grantable));
+        // Quyền target đang có nhưng người sửa KHÔNG có thẩm quyền → giữ nguyên (không tước ngoài tầm).
+        $ngoaiTam = array_values(array_diff(Perm::effectiveFor($target), $grantable));
+
+        $target->update(['quyen' => array_values(array_unique(array_merge($chosen, $ngoaiTam)))]);
+
+        return back()->with('success', 'Đã cập nhật quyền cho ' . ($target->nhanVien?->ten_nv ?? $target->ten_tk) . '.');
     }
 
     public function store(Request $request, EmailVerificationService $emailVerifier)

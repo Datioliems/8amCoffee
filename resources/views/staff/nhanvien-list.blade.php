@@ -178,6 +178,7 @@
                     <tr>
                         <td colspan="6" class="px-4 pb-3">
                             <div class="flex items-center justify-end gap-4">
+                                <a href="{{ route('nhanvien.permissions', $a->ma_tai_khoan) }}" class="text-xs font-semibold text-[#522C25] hover:underline">Phân quyền</a>
                                 @if($a->trang_thai==='cho_xac_minh')
                                 <form method="POST" action="{{ route('nhanvien.resend', $a->ma_tai_khoan) }}">
                                     @csrf

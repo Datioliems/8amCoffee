@@ -45,4 +45,18 @@ return [
 
     // Gửi email CẢNH BÁO trước khi xoá bao nhiêu ngày (thông báo trước).
     'purge_warn_days' => (int) env('PURGE_WARN_DAYS', 2),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Quên mật khẩu / Ghi nhớ đăng nhập
+    |--------------------------------------------------------------------------
+    */
+    // Link đặt lại mật khẩu còn hiệu lực bao nhiêu phút.
+    'reset_minutes' => (int) env('PASSWORD_RESET_MINUTES', 60),
+
+    // Số request gửi link đặt lại mật khẩu tối đa /phút (theo IP).
+    'reset_rate_per_minute' => (int) env('PASSWORD_RESET_RATE', 5),
+
+    // "Ghi nhớ đăng nhập" giữ phiên bao nhiêu ngày (cookie + token).
+    'remember_days' => (int) env('REMEMBER_DAYS', 30),
 ];

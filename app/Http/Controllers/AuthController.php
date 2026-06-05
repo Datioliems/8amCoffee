@@ -6,7 +6,9 @@ use App\Mail\OtpMail;
 use App\Models\EmailLog;
 use App\Models\NhatKyDangNhap;
 use App\Models\TaiKhoan;
+use App\Support\Perm;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
@@ -108,13 +110,15 @@ class AuthController extends Controller
         RateLimiter::clear($ipKey);
         $taiKhoan->update(['dang_nhap_sai' => 0, 'khoa_den' => null]);
 
+        $remember = $request->boolean('remember');
+
         // ── (6) Bật 2FA? → gửi OTP, chuyển sang bước xác thực ───────────
         if ($this->canDuse2fa($taiKhoan)) {
-            return $this->guiOtpVaChuyenHuong($taiKhoan, $request);
+            return $this->guiOtpVaChuyenHuong($taiKhoan, $request, remember: $remember);
         }
 
         // ── (7) Không 2FA → đăng nhập luôn ──────────────────────────────
-        return $this->hoanTatDangNhap($taiKhoan, $request);
+        return $this->hoanTatDangNhap($taiKhoan, $request, remember: $remember);
     }
 
     /** Trang nhập OTP. */
@@ -169,11 +173,12 @@ class AuthController extends Controller
         }
 
         // Đúng → xoá OTP, hoàn tất.
+        $remember = (bool) ($pending['remember'] ?? false);
         $taiKhoan->update(['otp_ma' => null, 'otp_het_han' => null, 'otp_sai' => 0]);
         session()->forget('otp_pending');
         $this->log('otp_thanh_cong', $request, $this->ctx($taiKhoan, 'Xac thuc OTP thanh cong'), true);
 
-        return $this->hoanTatDangNhap($taiKhoan, $request, alreadyLogged: true);
+        return $this->hoanTatDangNhap($taiKhoan, $request, alreadyLogged: true, remember: $remember);
     }
 
     /** Gửi lại OTP (có throttle). */
@@ -192,7 +197,7 @@ class AuthController extends Controller
         $taiKhoan = TaiKhoan::with('nhanVien')->find($pending['ma_tai_khoan']);
         if (!$taiKhoan) return redirect()->route('login');
 
-        return $this->guiOtpVaChuyenHuong($taiKhoan, $request, resend: true);
+        return $this->guiOtpVaChuyenHuong($taiKhoan, $request, resend: true, remember: (bool) ($pending['remember'] ?? false));
     }
 
     public function logout(Request $request)
@@ -203,9 +208,15 @@ class AuthController extends Controller
             'ma_nv'        => session('ma_nv'),
         ], true);
 
+        // Xoá "ghi nhớ đăng nhập" (token DB + cookie).
+        if (session('tai_khoan_id')) {
+            TaiKhoan::where('ma_tai_khoan', session('tai_khoan_id'))
+                ->update(['remember_token' => null, 'remember_het_han' => null]);
+        }
+
         $request->session()->flush();
         $request->session()->regenerate();
-        return redirect()->route('login');
+        return redirect()->route('login')->withCookie(Cookie::forget('8am_remember'));
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -221,7 +232,7 @@ class AuthController extends Controller
     }
 
     /** Sinh OTP, lưu hash, gửi email, đặt session pending rồi chuyển sang trang OTP. */
-    private function guiOtpVaChuyenHuong(TaiKhoan $tk, Request $request, bool $resend = false)
+    private function guiOtpVaChuyenHuong(TaiKhoan $tk, Request $request, bool $resend = false, bool $remember = false)
     {
         $len = config('security.otp_length');
         $otp = str_pad((string) random_int(0, (10 ** $len) - 1), $len, '0', STR_PAD_LEFT);
@@ -246,6 +257,7 @@ class AuthController extends Controller
         session(['otp_pending' => [
             'ma_tai_khoan' => $tk->ma_tai_khoan,
             'email_mask'   => $this->maskEmail($email),
+            'remember'     => $remember,
         ]]);
 
         $this->log('otp_gui', $request, $this->ctx($tk, $resend ? 'Gui lai OTP' : 'Gui OTP'), true);
@@ -255,7 +267,7 @@ class AuthController extends Controller
     }
 
     /** Đặt session đăng nhập + chuyển về trang đích. */
-    private function hoanTatDangNhap(TaiKhoan $tk, Request $request, bool $alreadyLogged = false)
+    private function hoanTatDangNhap(TaiKhoan $tk, Request $request, bool $alreadyLogged = false, bool $remember = false)
     {
         $request->session()->regenerate();
 
@@ -264,8 +276,13 @@ class AuthController extends Controller
         $request->session()->put('ten_nv',       $tk->nhanVien?->ten_nv ?? $tk->ten_tk);
         $request->session()->put('chuc_vu',      $tk->chuc_vu);
         $request->session()->put('ma_chi_nhanh', $tk->nhanVien?->ma_chi_nhanh);
+        $request->session()->put('quyen',        Perm::effectiveFor($tk));   // quyền hiệu lực
 
         $tk->update(['lan_dang_nhap_cuoi' => now(), 'ip_dang_nhap_cuoi' => $request->ip()]);
+
+        if ($remember) {
+            $this->datCookieGhiNho($tk);
+        }
 
         $this->log('dang_nhap', $request, $this->ctx($tk, $alreadyLogged ? 'Dang nhap (qua 2FA)' : 'Dang nhap thanh cong'), true);
 
@@ -275,6 +292,24 @@ class AuthController extends Controller
             : route('orders.index');
 
         return redirect($safeUrl);
+    }
+
+    /** Tạo token "ghi nhớ đăng nhập" (lưu hash ở DB) + đặt cookie dài hạn. */
+    private function datCookieGhiNho(TaiKhoan $tk): void
+    {
+        $raw = Str::random(48);
+        $tk->update([
+            'remember_token'   => hash('sha256', $raw),
+            'remember_het_han' => now()->addDays((int) config('security.remember_days', 30)),
+        ]);
+
+        $phut   = (int) config('security.remember_days', 30) * 24 * 60;
+        $secure = filter_var(env('FORCE_HTTPS', false), FILTER_VALIDATE_BOOL);
+
+        Cookie::queue(cookie(
+            '8am_remember', $tk->ma_tai_khoan . '|' . $raw,
+            $phut, '/', null, $secure, true, false, 'lax'
+        ));
     }
 
     /** Context chung cho audit log từ một TaiKhoan. */
