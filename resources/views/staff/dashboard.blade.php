@@ -38,9 +38,17 @@
             <p class="text-xs uppercase tracking-[0.2em] text-[#522C25]/55">Doanh thu hôm nay</p>
             <p class="mt-4 text-5xl font-bold text-[#E82C2A]">{{ number_format($doanhThuHomNay, 0, ',', '.') }}đ</p>
             <p class="mt-4 text-sm leading-6 text-[#522C25]/65">Dữ liệu lấy từ các hóa đơn và đơn đã xử lý trong chi nhánh hiện tại.</p>
-            <a href="{{ route('orders.index', ['status' => 'hoan_thanh']) }}" class="mt-7 inline-flex rounded-full bg-[#1A1A1A] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#E82C2A]">
-                Mở bảng đơn hàng
-            </a>
+            <div class="mt-7 flex flex-wrap gap-3">
+                <a href="{{ route('orders.index', ['status' => 'hoan_thanh']) }}" class="inline-flex rounded-full bg-[#1A1A1A] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#E82C2A]">
+                    Mở bảng đơn hàng
+                </a>
+                @perm('inventory.manage')
+                <a href="{{ route('report.index') }}" class="inline-flex items-center gap-1.5 rounded-full bg-[#F2F2F2] px-5 py-3 text-sm font-semibold text-[#522C25] transition hover:bg-[#E9DDD0]">
+                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 14 3-4 4 3 5-7"/></svg>
+                    Báo cáo doanh thu
+                </a>
+                @endperm
+            </div>
         </div>
     </section>
 

@@ -180,6 +180,16 @@ document.addEventListener('alpine:init', () => {
             return options;
         },
 
+        // Phụ thu topping đã chọn (để hiển thị "+ topping" và cộng vào tổng tiền customizer).
+        get selectedExtra() {
+            return this.optionPayload.reduce((sum, o) => sum + (Number(o.price) || 0), 0);
+        },
+
+        get selectedTotal() {
+            const unit = (Number(this.selectedMon?.don_gia) || 0) + this.selectedExtra;
+            return unit * (this.selectedOptions.qty || 1);
+        },
+
         addCustomizedToCart() {
             if (!this.selectedMon) return;
             const summary = this.customizationSummary;

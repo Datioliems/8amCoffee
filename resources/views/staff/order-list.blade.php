@@ -25,10 +25,13 @@
                 <h2 class="mt-1 text-2xl font-semibold">Luồng xử lý đơn tại quầy</h2>
             </div>
             <div class="flex flex-wrap gap-2 overflow-x-auto scrollbar-hide">
-                <a href="{{ route('orders.takeaway.create') }}"
-                   class="whitespace-nowrap rounded-full bg-[#8B5A2B] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#6F4621]">
-                    + Đơn mang về
+                @perm('inventory.manage')
+                <a href="{{ route('report.index') }}"
+                   class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-[#52613B] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#445230]">
+                    <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="m7 14 3-4 4 3 5-7"/></svg>
+                    Báo cáo
                 </a>
+                @endperm
                 @foreach($statusTabs as $val => $label)
                 <a href="{{ request()->fullUrlWithQuery(['status' => $val]) }}"
                    class="whitespace-nowrap rounded-full px-4 py-2 text-xs font-semibold transition

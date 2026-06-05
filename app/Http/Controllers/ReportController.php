@@ -11,13 +11,13 @@ class ReportController extends Controller
     /** Trang báo cáo doanh thu (lọc theo kỳ + chi nhánh). */
     public function index(Request $request)
     {
-        return view('inventory.report', $this->collect($request));
+        return view('report.index', $this->collect($request));
     }
 
     /** Trang IN báo cáo (bố cục tối giản, tự mở hộp thoại in / Lưu PDF). */
     public function print(Request $request)
     {
-        return view('inventory.report-print', $this->collect($request) + [
+        return view('report.print', $this->collect($request) + [
             'inLuc' => now()->format('d/m/Y H:i'),
         ]);
     }

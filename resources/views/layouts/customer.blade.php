@@ -14,6 +14,7 @@
 </head>
 <body class="min-h-screen bg-[#FCFAFA] text-[#1A1A1A]" x-data="cart()">
 
+@unless(request()->routeIs('customer.scan'))
 <header class="sticky top-0 z-40 border-b border-[#522C25]/10 bg-[#FCFAFA]/95 backdrop-blur">
     <div class="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 md:px-6">
         <a href="#" class="flex items-center gap-3">
@@ -37,6 +38,7 @@
         </button>
     </div>
 </header>
+@endunless
 
 <main class="mx-auto max-w-5xl px-4 py-5 md:px-6 md:py-8">
     @yield('content')
@@ -113,7 +115,8 @@
                         <template x-for="option in selectedMon.options.toppings" :key="option">
                             <button @click="toggleTopping(option)"
                                     :class="selectedOptions.toppings.includes(option) ? 'bg-[#E82C2A] text-white' : 'bg-[#F2F2F2] text-[#1A1A1A]'"
-                                    class="am-mono rounded-[1.4rem] px-4 py-4 text-sm transition" x-text="option"></button>
+                                    class="am-mono rounded-[1.4rem] px-4 py-4 text-sm transition"
+                                    x-text="option + ((selectedMon.options.topping_prices && selectedMon.options.topping_prices[option]) ? ' +' + formatPrice(selectedMon.options.topping_prices[option]) : '')"></button>
                         </template>
                     </div>
                 </section>
@@ -140,7 +143,9 @@
                 <div class="flex items-center justify-between gap-4">
                     <div>
                         <p class="am-mono text-xs">Tổng tiền</p>
-                        <p class="am-mono text-2xl font-bold" x-text="formatPrice(selectedMon.don_gia * selectedOptions.qty)"></p>
+                        <p class="am-mono text-2xl font-bold" x-text="formatPrice(selectedTotal)"></p>
+                        <p class="am-mono text-[11px] text-white/85" x-show="selectedExtra > 0"
+                           x-text="'+ topping ' + formatPrice(selectedExtra * selectedOptions.qty)"></p>
                     </div>
                     <button @click="addCustomizedToCart()" class="am-headline rounded-full bg-white px-8 py-4 text-xl font-semibold text-[#E82C2A] shadow">
                         Thêm vào giỏ
@@ -195,6 +200,38 @@
                 </div>
             </template>
         </div>
+
+        {{-- Các đơn đã đặt trong phiên (card: mã đơn, các món + SL, tổng tiền góc dưới phải) --}}
+        @isset($cartOrders)
+        @if($cartOrders->isNotEmpty())
+        @php
+            $__lbl = ['dang_chon'=>'Chưa gửi','cho_xac_nhan'=>'Chờ xác nhận','da_xac_nhan'=>'Đã xác nhận','dang_pha_che'=>'Đang pha chế','da_phuc_vu'=>'Đã phục vụ','hoan_thanh'=>'Đã thanh toán','da_huy'=>'Đã hủy'];
+        @endphp
+        <div class="space-y-3">
+            <p class="text-xs uppercase tracking-[0.18em] text-[#522C25]/55">Đơn đã đặt trong phiên</p>
+            @foreach($cartOrders as $o)
+            @php $oTotal = $o->chiTietOrders->sum(fn ($ct) => ($ct->don_gia_tai_thoi_diem + $ct->options->sum('gia_them')) * $ct->so_luong); @endphp
+            <a href="{{ route('customer.status', $o->ma_order) }}"
+               class="block rounded-2xl bg-white p-4 ring-1 ring-[#522C25]/10 transition hover:ring-[#E82C2A]/40">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-xs font-semibold text-[#522C25]/80">{{ $o->ma_order }}</span>
+                    <span class="rounded-full bg-[#F2F2F2] px-2.5 py-0.5 text-[11px] font-semibold text-[#522C25]">{{ $__lbl[$o->trang_thai] ?? $o->trang_thai }}</span>
+                </div>
+                <div class="mt-2 space-y-0.5">
+                    @forelse($o->chiTietOrders as $ct)
+                    <p class="text-xs text-[#522C25]/70">{{ optional($ct->mon)->ten_mon ?? $ct->ma_mon }} <span class="text-[#522C25]/45">×{{ $ct->so_luong }}</span></p>
+                    @empty
+                    <p class="text-xs text-[#522C25]/45">Chưa có món.</p>
+                    @endforelse
+                </div>
+                <div class="mt-2 text-right">
+                    <span class="text-sm font-bold text-[#E82C2A]">{{ number_format($oTotal, 0, ',', '.') }}đ</span>
+                </div>
+            </a>
+            @endforeach
+        </div>
+        @endif
+        @endisset
 
         <div x-show="items.length > 0" class="mt-auto pt-6">
             <div class="mb-4 flex justify-between rounded-2xl bg-[#1A1A1A] px-4 py-3 text-white">

@@ -66,6 +66,10 @@ Route::get('/payment/vnpay/ipn',    [PaymentController::class, 'vnpayIpn']   )->
 // ── STAFF ─────────────────────────────────────────────────────
 Route::middleware(['auth.staff'])->group(function () {
 
+    // Đổi mật khẩu lần đầu (AuthMiddleware ép tới đây khi phai_doi_mk = true).
+    Route::get('/doi-mat-khau-lan-dau',  [\App\Http\Controllers\ForcePasswordController::class, 'show']  )->name('password.force');
+    Route::post('/doi-mat-khau-lan-dau', [\App\Http\Controllers\ForcePasswordController::class, 'update'])->name('password.force.update');
+
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('perm:dashboard.view')->name('dashboard');
 
     // ── PHÂN TÍCH AI (dự báo doanh thu + gợi ý món) ──────────
@@ -198,8 +202,12 @@ Route::middleware(['auth.staff'])->group(function () {
         Route::resource('stockcheck', StockCheckController::class)->only(['index', 'create', 'store', 'show']);
         Route::put('/stockcheck/{id}/confirm', [StockCheckController::class,'confirm'])->name('stockcheck.confirm');
         Route::put('/stockcheck/{id}/cancel',  [StockCheckController::class,'cancel'] )->name('stockcheck.cancel');
-        Route::get('/report',        [ReportController::class, 'index'] )->name('report');
-        Route::get('/report/export', [ReportController::class, 'export'])->name('report.export');
-        Route::get('/report/print',  [ReportController::class, 'print'] )->name('report.print');
+    });
+
+    // ── BÁO CÁO DOANH THU (tách riêng, KHÔNG nằm trong inventory) ──
+    Route::middleware('perm:inventory.manage')->prefix('report')->name('report.')->group(function () {
+        Route::get('/',       [ReportController::class, 'index'] )->name('index');
+        Route::get('/export', [ReportController::class, 'export'])->name('export');
+        Route::get('/print',  [ReportController::class, 'print'] )->name('print');
     });
 });

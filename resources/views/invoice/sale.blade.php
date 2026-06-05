@@ -68,8 +68,14 @@
 
         <div class="totals">
             <div><span>Tạm tính</span><span>{{ number_format($hoaDon->tong_tien_truoc_ck, 0, ',', '.') }}đ</span></div>
-            <div><span>Chiết khấu</span><span>{{ (float) $hoaDon->chiet_khau }}%</span></div>
-            <div class="grand"><span>Tổng thu</span><span>{{ number_format($hoaDon->tong_tien_sau_ck, 0, ',', '.') }}đ</span></div>
+            @if((float) $hoaDon->chiet_khau > 0)
+            <div><span>Chiết khấu ({{ (float) $hoaDon->chiet_khau }}%)</span><span>-{{ number_format($hoaDon->tong_tien_truoc_ck * $hoaDon->chiet_khau / 100, 0, ',', '.') }}đ</span></div>
+            @endif
+            @if((int) $hoaDon->diem_su_dung > 0)
+            <div><span>Giảm từ điểm{{ $hoaDon->ma_the ? ' (thẻ '.$hoaDon->ma_the.')' : '' }}</span><span>-{{ number_format($hoaDon->giam_gia_diem, 0, ',', '.') }}đ</span></div>
+            <div style="font-size:12px;color:#666"><span>Điểm đã dùng</span><span>{{ number_format($hoaDon->diem_su_dung, 0, ',', '.') }} điểm</span></div>
+            @endif
+            <div class="grand"><span>Tổng cần thu</span><span>{{ number_format($hoaDon->tong_tien_sau_ck, 0, ',', '.') }}đ</span></div>
             <div style="margin-top:8px"><span>Thanh toán</span><span>{{ $method }}</span></div>
         </div>
 

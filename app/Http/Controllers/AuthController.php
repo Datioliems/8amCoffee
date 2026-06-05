@@ -277,6 +277,7 @@ class AuthController extends Controller
         $request->session()->put('chuc_vu',      $tk->chuc_vu);
         $request->session()->put('ma_chi_nhanh', $tk->nhanVien?->ma_chi_nhanh);
         $request->session()->put('quyen',        Perm::effectiveFor($tk));   // quyền hiệu lực
+        $request->session()->put('phai_doi_mk',  (bool) $tk->phai_doi_mk);    // bắt đổi MK lần đầu?
 
         $tk->update(['lan_dang_nhap_cuoi' => now(), 'ip_dang_nhap_cuoi' => $request->ip()]);
 
@@ -285,6 +286,11 @@ class AuthController extends Controller
         }
 
         $this->log('dang_nhap', $request, $this->ctx($tk, $alreadyLogged ? 'Dang nhap (qua 2FA)' : 'Dang nhap thanh cong'), true);
+
+        // Lần đăng nhập đầu tiên → buộc đổi mật khẩu trước khi vào hệ thống.
+        if ($tk->phai_doi_mk) {
+            return redirect()->route('password.force');
+        }
 
         $intendedUrl = $request->session()->pull('url.intended');
         $safeUrl = ($intendedUrl && !str_ends_with($intendedUrl, '.html'))

@@ -23,6 +23,21 @@ class QrController extends Controller
             'thoi_gian'    => now(),
         ]);
 
+        // ── KHÓA BÀN THEO PHIÊN ───────────────────────────────────────────────
+        // Bàn đang có đơn hoạt động (chưa thanh toán/hủy) TRONG NGÀY → chỉ chủ phiên
+        // (trình duyệt đã sở hữu đơn) được vào; người khác bị chặn khỏi link bàn này.
+        // Lưu ý tương tác với phát hiện QR bất thường: lượt quét VẪN được ghi SCAN_LOG
+        // ở trên, nên ML/rule vẫn "thấy" cả các lượt bị chặn để tính bất thường — khóa
+        // bàn (chặn cứng tức thời) và phát hiện bất thường (quan sát mẫu) bổ trợ nhau.
+        $phienDangMo = \App\Models\Order::where('ma_ban', $ban->ma_ban)
+            ->whereNotIn('trang_thai', ['hoan_thanh', 'da_huy'])
+            ->whereDate('ngay_order', today())
+            ->orderByDesc('ngay_order')->orderByDesc('gio_order')
+            ->first();
+        if ($phienDangMo && ! in_array($phienDangMo->ma_order, (array) session('customer_orders', []), true)) {
+            return response()->view('customer.table-busy', compact('ban'), 423);
+        }
+
         // Điền sẵn thông tin khách đã nhập trong phiên (để "Gọi món khác" không phải nhập lại)
         $profile = (array) session('customer_profile', []);
         return view('customer.scan', compact('ban', 'profile'));

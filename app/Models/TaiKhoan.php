@@ -19,6 +19,7 @@ class TaiKhoan extends Model
         'lan_dang_nhap_cuoi','ip_dang_nhap_cuoi',
         'email_xac_thuc_luc','kich_hoat_token','kich_hoat_het_han','tao_luc',
         'reset_token','reset_het_han','remember_token','remember_het_han',
+        'phai_doi_mk',
     ];
 
     protected $hidden = ['mat_khau','otp_ma','kich_hoat_token','reset_token','remember_token'];
@@ -34,6 +35,7 @@ class TaiKhoan extends Model
         'reset_het_han'      => 'datetime',
         'remember_het_han'   => 'datetime',
         'quyen'              => 'array',
+        'phai_doi_mk'        => 'boolean',
     ];
 
     public function nhanVien() { return $this->belongsTo(NhanVien::class, 'ma_nv', 'ma_nv'); }

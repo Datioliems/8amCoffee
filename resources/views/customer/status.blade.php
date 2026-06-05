@@ -66,10 +66,10 @@
                     </div>
                 @endif
 
-                <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+                <div class="mt-6 flex flex-col items-center gap-2">
                     @if($order->trang_thai === 'dang_chon')
                         <a href="{{ route('customer.menu', ['ma_ban' => $order->ma_ban, 'ma_order' => $order->ma_order]) }}"
-                           class="rounded-full bg-[#E82C2A] px-5 py-2.5 text-sm font-semibold text-white">
+                           class="whitespace-nowrap rounded-full bg-[#E82C2A] px-5 py-2.5 text-sm font-semibold text-white">
                             Quay lại thực đơn
                         </a>
                     @else
@@ -79,13 +79,13 @@
                             @csrf
                             <input type="hidden" name="ten_kh" value="{{ session('customer_profile.ten_kh', $order->ten_khach ?: 'Khách') }}">
                             <input type="hidden" name="sdt_kh" value="{{ session('customer_profile.sdt_kh', $order->sdt_khach) }}">
-                            <button type="submit" class="rounded-full bg-[#E82C2A] px-5 py-2.5 text-sm font-semibold text-white">
+                            <button type="submit" class="whitespace-nowrap rounded-full bg-[#E82C2A] px-5 py-2.5 text-sm font-semibold text-white">
                                 {{ $dangXuLy ? 'Đặt thêm đơn mới' : 'Gọi món khác' }}
                             </button>
                         </form>
                         @else
                         <a href="{{ route('customer.scan', ['ma_ban' => $order->ma_ban]) }}"
-                           class="rounded-full bg-[#E82C2A] px-5 py-2.5 text-sm font-semibold text-white">
+                           class="whitespace-nowrap rounded-full bg-[#E82C2A] px-5 py-2.5 text-sm font-semibold text-white">
                             {{ $dangXuLy ? 'Đặt thêm đơn mới' : 'Gọi món khác' }}
                         </a>
                         @endif
@@ -136,21 +136,7 @@
             </div>
             @endif
 
-            {{-- Đơn khác trong phiên --}}
-            @if($otherOrders->isNotEmpty())
-            <div class="mt-4 rounded-[1.6rem] bg-white p-5 text-left ring-1 ring-[#522C25]/10">
-                <p class="am-mono text-xs uppercase tracking-[0.16em] text-[#522C25]/55">Đơn khác của bạn</p>
-                <div class="mt-3 space-y-2">
-                    @foreach($otherOrders as $o)
-                    <a href="{{ route('customer.status', $o->ma_order) }}"
-                       class="flex items-center justify-between rounded-xl bg-[#F6F3F2] px-3 py-2 transition hover:bg-[#EFEAE8]">
-                        <span class="am-mono text-xs text-[#522C25]/70">{{ $o->ma_order }}</span>
-                        <span class="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-[#522C25] ring-1 ring-[#522C25]/10">{{ $labelOf($o->trang_thai) }}</span>
-                    </a>
-                    @endforeach
-                </div>
-            </div>
-            @endif
+            {{-- "Đơn đã đặt trong phiên" hiển thị trong sidebar giỏ hàng (xem layouts/customer). --}}
         </div>
 
         {{-- ───────── CỘT PHẢI: nhân vật pha chế + lời nhắn + đếm ngược ───────── --}}
