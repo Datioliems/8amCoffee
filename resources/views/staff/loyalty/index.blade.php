@@ -50,14 +50,27 @@
             </div>
             <p id="rfid-status" class="mt-1 text-[11px] text-[#522C25]/55">Bấm “Kết nối đầu đọc” rồi quẹt thẻ — UID tự điền (Chrome/Edge, đầu đọc cắm USB).</p>
 
-            {{-- Chọn khách đủ điều kiện --}}
-            <label class="mt-3 mb-1 block text-[11px] font-semibold text-[#522C25]/55">Khách đủ điều kiện (đã đạt mốc, chưa có thẻ)</label>
-            <select name="ma_kh" id="kh-select" class="w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm">
-                <option value="">— Chọn khách —</option>
-                @foreach($eligible as $e)
-                    <option value="{{ $e['ma_kh'] }}">{{ $e['ten_kh'] ?: $e['ma_kh'] }} · {{ $e['sdt_che'] }} · {{ number_format($e['tong'], 0, ',', '.') }}đ</option>
-                @endforeach
-            </select>
+            {{-- Chọn khách đủ điều kiện — gõ tên/SĐT, hiện gợi ý (autocomplete) --}}
+            <label class="mt-3 mb-1 block text-[11px] font-semibold text-[#522C25]/55">Khách đủ điều kiện (gõ tên hoặc SĐT)</label>
+            <div class="relative" id="kh-ac">
+                <input type="text" id="kh-search" autocomplete="off" placeholder="Gõ tên hoặc số điện thoại khách..."
+                       class="w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm">
+                <input type="hidden" name="ma_kh" id="kh-ma" value="">
+                <div id="kh-list" class="absolute z-20 mt-1 hidden max-h-56 w-full overflow-auto rounded-lg border border-[#522C25]/15 bg-white shadow-lg">
+                    @forelse($eligible as $e)
+                        <button type="button" class="kh-item block w-full border-b border-[#522C25]/5 px-3 py-2 text-left text-sm hover:bg-[#FFF7E8]"
+                                data-ma="{{ $e['ma_kh'] }}"
+                                data-label="{{ $e['ten_kh'] ?: $e['ma_kh'] }} · {{ $e['sdt_che'] }}"
+                                data-search="{{ \Illuminate\Support\Str::lower(($e['ten_kh'] ?? '') . ' ' . ($e['sdt'] ?? '') . ' ' . ($e['sdt_che'] ?? '')) }}">
+                            <span class="font-medium text-[#1A1A1A]">{{ $e['ten_kh'] ?: $e['ma_kh'] }}</span>
+                            <span class="text-[#522C25]/60"> · {{ $e['sdt_che'] }}</span>
+                            <span class="text-[#8B5A2B]"> · {{ number_format($e['tong'], 0, ',', '.') }}đ</span>
+                        </button>
+                    @empty
+                        <div class="px-3 py-2 text-[11px] text-[#522C25]/45">Chưa có khách đủ điều kiện.</div>
+                    @endforelse
+                </div>
+            </div>
             @if(empty($eligible))
                 <p class="mt-1 text-[11px] text-[#522C25]/45">Chưa có khách đạt mốc {{ number_format((int) config('loyalty.issue_threshold'), 0, ',', '.') }}đ (hoặc tất cả đã có thẻ).</p>
             @endif
@@ -142,59 +155,109 @@
 </div>
 
 <script>
-// ── Đọc UID tự động từ đầu đọc RFID qua Web Serial (Chrome/Edge) ──
+// ── Đầu đọc RFID (Web Serial, tự kết nối khi cắm USB) + Autocomplete khách ──
 document.addEventListener('DOMContentLoaded', () => {
-    const btn = document.getElementById('rfid-connect');
-    const statusEl = document.getElementById('rfid-status');
-    const uidInput = document.getElementById('uid-input');
-    const khSelect = document.getElementById('kh-select');
-    if (!btn) return;
 
-    if (!('serial' in navigator)) {
-        btn.disabled = true;
-        btn.classList.add('opacity-50', 'cursor-not-allowed');
-        statusEl.textContent = 'Trình duyệt không hỗ trợ Web Serial — dùng Chrome/Edge, hoặc gõ UID thủ công.';
-        return;
-    }
+    // ===== A) ĐẦU ĐỌC RFID =====
+    (() => {
+        const btn = document.getElementById('rfid-connect');
+        const statusEl = document.getElementById('rfid-status');
+        const uidInput = document.getElementById('uid-input');
+        if (!btn) return;
 
-    btn.addEventListener('click', async () => {
-        try {
-            const port = await navigator.serial.requestPort();   // hộp thoại chọn cổng UNO
-            await port.open({ baudRate: 9600 });
-            statusEl.textContent = 'Đã kết nối — quẹt thẻ đi...';
+        if (!('serial' in navigator)) {
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            statusEl.textContent = 'Trình duyệt không hỗ trợ Web Serial — dùng Chrome/Edge, hoặc gõ UID thủ công.';
+            return;
+        }
+
+        let reading = false;
+
+        const setUid = (uid) => {
+            uidInput.value = uid;
+            uidInput.classList.add('ring-2', 'ring-emerald-400');
+            statusEl.textContent = 'Đã đọc UID ' + uid + ' ✓ — chọn khách rồi bấm Phát thẻ.';
+            setTimeout(() => uidInput.classList.remove('ring-2', 'ring-emerald-400'), 1500);
+        };
+
+        async function startReading(port) {
+            if (reading) return;
+            try { await port.open({ baudRate: 9600 }); } catch (e) { /* có thể đã mở sẵn */ }
+            if (!port.readable) return;                 // không mở được (thiết bị không có)
+            reading = true;
             btn.textContent = 'Đang đọc thẻ ●';
             btn.disabled = true;
-
-            const decoder = new TextDecoderStream();
-            port.readable.pipeTo(decoder.writable).catch(() => {});
-            const reader = decoder.readable.getReader();
-
-            let buf = '';
-            while (true) {
-                const { value, done } = await reader.read();
-                if (done) break;
-                buf += value;
-                let i;
-                while ((i = buf.indexOf('\n')) >= 0) {
-                    const line = buf.slice(0, i).trim();
-                    buf = buf.slice(i + 1);
-                    if (line.startsWith('UID:')) {
-                        const uid = line.slice(4).trim().toUpperCase();
-                        uidInput.value = uid;
-                        uidInput.classList.add('ring-2', 'ring-emerald-400');
-                        statusEl.textContent = (khSelect && !khSelect.value)
-                            ? ('Đã đọc UID ' + uid + ' — giờ chọn khách rồi bấm Phát thẻ.')
-                            : ('Đã đọc UID ' + uid + ' ✓');
-                        setTimeout(() => uidInput.classList.remove('ring-2', 'ring-emerald-400'), 1500);
+            statusEl.textContent = 'Đã kết nối đầu đọc — quẹt thẻ...';
+            try {
+                const decoder = new TextDecoderStream();
+                port.readable.pipeTo(decoder.writable).catch(() => {});
+                const reader = decoder.readable.getReader();
+                let buf = '';
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buf += value;
+                    let i;
+                    while ((i = buf.indexOf('\n')) >= 0) {
+                        const line = buf.slice(0, i).trim();
+                        buf = buf.slice(i + 1);
+                        if (line.startsWith('UID:')) setUid(line.slice(4).trim().toUpperCase());
                     }
                 }
+            } catch (e) {
+                statusEl.textContent = 'Mất kết nối đầu đọc: ' + e.message;
             }
-        } catch (e) {
-            statusEl.textContent = 'Không kết nối được: ' + e.message + ' (đóng Serial Monitor / bridge nếu đang giữ cổng).';
+            reading = false;
             btn.disabled = false;
             btn.textContent = 'Kết nối đầu đọc';
         }
-    });
+
+        // Tự kết nối lại đầu đọc ĐÃ cấp quyền (khi tải trang).
+        navigator.serial.getPorts().then((ports) => {
+            if (ports.length && !reading) startReading(ports[0]);
+        }).catch(() => {});
+
+        // Tự kết nối khi CẮM USB (thiết bị đã từng cấp quyền).
+        navigator.serial.addEventListener('connect', (e) => { if (!reading) startReading(e.target); });
+        navigator.serial.addEventListener('disconnect', () => {
+            reading = false; btn.disabled = false; btn.textContent = 'Kết nối đầu đọc';
+            statusEl.textContent = 'Đầu đọc đã rút. Cắm lại sẽ tự kết nối.';
+        });
+
+        // Lần ĐẦU: bấm để cấp quyền cổng (trình duyệt yêu cầu thao tác người dùng).
+        btn.addEventListener('click', async () => {
+            try { startReading(await navigator.serial.requestPort()); }
+            catch (e) { statusEl.textContent = 'Không kết nối được: ' + e.message + ' (đóng Serial Monitor/bridge nếu đang giữ cổng).'; }
+        });
+    })();
+
+    // ===== B) AUTOCOMPLETE khách đủ điều kiện =====
+    (() => {
+        const wrap = document.getElementById('kh-ac');
+        const input = document.getElementById('kh-search');
+        const list = document.getElementById('kh-list');
+        const hidden = document.getElementById('kh-ma');
+        if (!wrap || !input || !list) return;
+        const items = Array.from(list.querySelectorAll('.kh-item'));
+
+        const filter = () => {
+            const q = input.value.trim().toLowerCase();
+            items.forEach((it) => {
+                const ok = q === '' || (it.dataset.search || '').includes(q);
+                it.style.display = ok ? '' : 'none';
+            });
+        };
+
+        input.addEventListener('focus', () => { list.classList.remove('hidden'); filter(); });
+        input.addEventListener('input', () => { hidden.value = ''; list.classList.remove('hidden'); filter(); });
+        items.forEach((it) => it.addEventListener('click', () => {
+            hidden.value = it.dataset.ma;
+            input.value = it.dataset.label;
+            list.classList.add('hidden');
+        }));
+        document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) list.classList.add('hidden'); });
+    })();
 });
 </script>
 @endsection

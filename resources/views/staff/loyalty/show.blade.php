@@ -35,9 +35,18 @@
             </div>
             <div class="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                 <div><p class="text-[11px] text-[#522C25]/55">Khách</p><p class="font-medium">{{ $card->khachHang?->ten_kh ?? ($card->ma_kh ?: '—') }}</p></div>
-                <div><p class="text-[11px] text-[#522C25]/55">Hạng</p><p class="font-medium">{{ $card->hang_the }}</p></div>
+                <div><p class="text-[11px] text-[#522C25]/55">Hạng</p><p class="font-medium">{{ $tier['nhan'] }}</p></div>
                 <div><p class="text-[11px] text-[#522C25]/55">Trạng thái</p><p class="font-medium">{{ $ttNhan[$card->trang_thai] ?? $card->trang_thai }}</p></div>
                 <div><p class="text-[11px] text-[#522C25]/55">Tổng tích lũy</p><p class="font-medium">{{ number_format($card->tong_diem_tich_luy, 0, ',', '.') }}</p></div>
+            </div>
+            <div class="mt-3 rounded-lg bg-[#FFF7E8] px-3 py-2 text-[12px] text-[#8B5A2B]">
+                <b>Quyền lợi hạng {{ $tier['nhan'] }}:</b>
+                tích điểm <b>×{{ $tier['he_so'] }}</b>
+                @if($tier['giam']['gia_tri'] > 0)
+                    · ưu đãi POS <b>{{ $tier['giam']['loai'] === 'tien' ? number_format($tier['giam']['gia_tri'], 0, ',', '.') . 'đ' : $tier['giam']['gia_tri'] . '%' }}</b>
+                @else
+                    · chưa có ưu đãi giảm giá
+                @endif
             </div>
             @if($ledgerBalance !== (int) $card->diem_hien_tai)
                 <p class="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-[11px] text-amber-700">

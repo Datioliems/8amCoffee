@@ -110,12 +110,18 @@ class PaymentController extends Controller
             return response()->json(['ok' => false, 'message' => 'Thẻ đang bị khóa hoặc báo mất.'], 422);
         }
 
+        $uuDai = $loyalty->tierDiscount($card->hang_the);
+
         return response()->json([
             'ok'             => true,
             'ma_the'         => $card->ma_the,
             'ten_kh'         => $card->khachHang?->ten_kh,
             'diem'           => (int) $card->diem_hien_tai,
             'hang_the'       => $card->hang_the,
+            'hang_nhan'      => $loyalty->tierLabel($card->hang_the),
+            'he_so'          => $loyalty->earnMultiplier($card->hang_the),
+            'giam_loai'      => $uuDai['loai'],         // 'phan_tram' | 'tien'
+            'giam_gia_tri'   => $uuDai['gia_tri'],      // % hoặc đồng
             'point_value'    => (int) config('loyalty.point_value', 50),
             'min_redeem'     => (int) config('loyalty.min_redeem', 100),
             'max_redeem_pct' => (int) config('loyalty.max_redeem_pct', 50),

@@ -184,10 +184,12 @@ class LoyaltyService
 
         $out = [];
         foreach (KhachHang::whereIn('ma_kh', $maKhs)->get() as $kh) {
+            $sdt = (string) $kh->sdt;                                    // cast tự giải mã
             $out[] = [
                 'ma_kh'   => $kh->ma_kh,
-                'ten_kh'  => (string) $kh->ten_kh,                       // cast tự giải mã
-                'sdt_che' => $this->maskPhone((string) $kh->sdt),
+                'ten_kh'  => (string) $kh->ten_kh,
+                'sdt'     => preg_replace('/\D/', '', $sdt),             // số đầy đủ — dùng để TÌM (autocomplete)
+                'sdt_che' => $this->maskPhone($sdt),                     // hiển thị (che bớt)
                 'tong'    => (float) ($rows[$kh->ma_kh]->tong ?? 0),
             ];
         }
@@ -221,15 +223,20 @@ class LoyaltyService
         return $this->earn($card, $soTien, $maOrder, $maHoaDon, $maThietBi);
     }
 
-    /** TÍCH ĐIỂM trực tiếp lên một thẻ. Trả về số điểm cộng. */
+    /** TÍCH ĐIỂM trực tiếp lên một thẻ (đã nhân HỆ SỐ theo hạng). Trả về số điểm cộng. */
     public function earn(TheThanhVien $card, float $soTien, ?string $maOrder = null, ?string $maHoaDon = null, ?string $maThietBi = null): int
     {
-        $diem = $this->pointsForAmount($soTien);
+        $base = $this->pointsForAmount($soTien);
+        if ($base <= 0) {
+            return 0;
+        }
+        $heSo = $this->earnMultiplier($card->hang_the);
+        $diem = (int) round($base * $heSo);
         if ($diem <= 0) {
             return 0;
         }
 
-        return DB::transaction(function () use ($card, $diem, $soTien, $maOrder, $maHoaDon, $maThietBi) {
+        return DB::transaction(function () use ($card, $diem, $heSo, $soTien, $maOrder, $maHoaDon, $maThietBi) {
             $card = TheThanhVien::whereKey($card->ma_the)->lockForUpdate()->first();
             $card->diem_hien_tai      += $diem;
             $card->tong_diem_tich_luy += $diem;
@@ -246,7 +253,7 @@ class LoyaltyService
                 'ma_order'          => $maOrder,
                 'ma_hoa_don'        => $maHoaDon,
                 'ma_thiet_bi'       => $maThietBi,
-                'mo_ta'             => 'Tich diem theo hoa don.',
+                'mo_ta'             => $heSo > 1 ? ("Tich diem x{$heSo} theo hang.") : 'Tich diem theo hoa don.',
                 'thoi_gian'         => now(),
             ]);
 
@@ -360,17 +367,50 @@ class LoyaltyService
         return (int) GiaoDichDiem::where('ma_the', $maThe)->sum('so_diem');
     }
 
-    /** Xếp hạng thẻ theo tổng điểm tích lũy. */
+    /** Xếp hạng thẻ theo tổng điểm tích lũy (hạng có ngưỡng cao nhất mà ≤ tổng điểm). */
     public function tierForPoints(int $tongDiem): string
     {
-        $tiers = (array) config('loyalty.tiers', ['thuong' => 0]);
-        arsort($tiers); // ngưỡng cao trước
-        foreach ($tiers as $ten => $nguong) {
-            if ($tongDiem >= $nguong) {
-                return $ten;
+        $best = 'thuong';
+        $bestNguong = -1;
+        foreach ((array) config('loyalty.tiers', []) as $ma => $cfg) {
+            $nguong = (int) ($cfg['nguong'] ?? 0);
+            if ($tongDiem >= $nguong && $nguong >= $bestNguong) {
+                $best = $ma;
+                $bestNguong = $nguong;
             }
         }
-        return 'thuong';
+        return $best;
+    }
+
+    /** Cấu hình một hạng (fallback hạng 'thuong'). */
+    public function tierConfig(string $tier): array
+    {
+        $tiers = (array) config('loyalty.tiers', []);
+        return $tiers[$tier]
+            ?? $tiers['thuong']
+            ?? ['nhan' => 'Thường', 'nguong' => 0, 'he_so' => 1.0, 'giam_loai' => 'phan_tram', 'giam_gia_tri' => 0];
+    }
+
+    /** Nhãn hiển thị của hạng. */
+    public function tierLabel(string $tier): string
+    {
+        return (string) ($this->tierConfig($tier)['nhan'] ?? $tier);
+    }
+
+    /** Hệ số tích điểm của hạng (vd 1.5). */
+    public function earnMultiplier(string $tier): float
+    {
+        return (float) ($this->tierConfig($tier)['he_so'] ?? 1.0);
+    }
+
+    /** Ưu đãi giảm giá của hạng: ['loai' => 'phan_tram'|'tien', 'gia_tri' => number]. */
+    public function tierDiscount(string $tier): array
+    {
+        $c = $this->tierConfig($tier);
+        return [
+            'loai'    => (string) ($c['giam_loai'] ?? 'phan_tram'),
+            'gia_tri' => (float) ($c['giam_gia_tri'] ?? 0),
+        ];
     }
 
     /** Sinh mã thẻ kế tiếp dạng TV###### (an toàn trùng khóa). */

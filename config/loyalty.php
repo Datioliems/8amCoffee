@@ -22,12 +22,16 @@ return [
     // Mức giảm tối đa cho mỗi hóa đơn khi đổi điểm (% giá trị hóa đơn).
     'max_redeem_pct' => (int) env('LOYALTY_MAX_REDEEM_PCT', 50),
 
-    // Xếp hạng thẻ theo TỔNG điểm đã tích lũy (tong_diem_tich_luy).
-    // key = mã hạng, value = ngưỡng điểm tối thiểu để đạt hạng.
+    // Hạng hội viên — xếp theo TỔNG điểm tích lũy (tong_diem_tich_luy).
+    //  nguong       : điểm tối thiểu để đạt hạng
+    //  he_so        : HỆ SỐ TÍCH ĐIỂM của hạng (vd 1.5 = tích nhanh gấp 1.5 lần)
+    //  giam_loai    : 'phan_tram' (giảm %) hoặc 'tien' (giảm số tiền cố định)
+    //  giam_gia_tri : giá trị giảm (số % nếu phan_tram, số đồng nếu tien) — ƯU ĐÃI khi quẹt thẻ ở POS
+    //  nhan         : nhãn hiển thị
     'tiers' => [
-        'thuong'    => 0,
-        'bac'       => 1_000,
-        'vang'      => 5_000,
-        'kim_cuong' => 20_000,
+        'thuong'    => ['nhan' => 'Thường',    'nguong' => 0,       'he_so' => 1.0,  'giam_loai' => 'phan_tram', 'giam_gia_tri' => 0],
+        'bac'       => ['nhan' => 'Bạc',       'nguong' => 1_000,   'he_so' => 1.25, 'giam_loai' => 'phan_tram', 'giam_gia_tri' => 3],
+        'vang'      => ['nhan' => 'Vàng',      'nguong' => 5_000,   'he_so' => 1.5,  'giam_loai' => 'phan_tram', 'giam_gia_tri' => 5],
+        'kim_cuong' => ['nhan' => 'Kim cương', 'nguong' => 20_000,  'he_so' => 2.0,  'giam_loai' => 'tien',      'giam_gia_tri' => 20_000],
     ],
 ];

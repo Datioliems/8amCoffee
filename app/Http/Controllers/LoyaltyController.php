@@ -60,7 +60,14 @@ class LoyaltyController extends Controller
         $ledger = GiaoDichDiem::where('ma_the', $maThe)->orderByDesc('thoi_gian')->orderByDesc('id')->limit(100)->get();
         $ledgerBalance = $this->loyalty->ledgerBalance($maThe);
 
-        return view('staff.loyalty.show', compact('card', 'ledger', 'ledgerBalance'));
+        // Quyền lợi của hạng hiện tại (hệ số tích điểm + ưu đãi giảm giá).
+        $tier = [
+            'nhan'  => $this->loyalty->tierLabel($card->hang_the),
+            'he_so' => $this->loyalty->earnMultiplier($card->hang_the),
+            'giam'  => $this->loyalty->tierDiscount($card->hang_the),
+        ];
+
+        return view('staff.loyalty.show', compact('card', 'ledger', 'ledgerBalance', 'tier'));
     }
 
     /** Phát thẻ thủ công: UID + (chọn khách trong danh sách `ma_kh` HOẶC nhập SĐT). */

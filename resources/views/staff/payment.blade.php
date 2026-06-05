@@ -117,6 +117,7 @@
                         <p class="text-sm">Khách: <b id="loy-name">—</b>
                             · Số dư <b id="loy-diem">0</b> điểm
                             · Hạng <span id="loy-hang" class="rounded-full bg-[#FFF7E8] px-2 py-0.5 text-[11px] font-semibold text-[#8B5A2B]">—</span></p>
+                        <p id="loy-uudai" class="mt-1 hidden text-[11px] font-semibold text-emerald-700"></p>
                         <div class="mt-2 flex flex-wrap items-end gap-2">
                             <div>
                                 <label class="mb-1 block text-[11px] font-semibold text-[#522C25]/55">Đổi (điểm)</label>
@@ -259,12 +260,36 @@ document.addEventListener('DOMContentLoaded', () => {
             balance = d.diem;
             $('loy-name').textContent = d.ten_kh || d.ma_the;
             $('loy-diem').textContent = d.diem;
-            $('loy-hang').textContent = d.hang_the;
+            $('loy-hang').textContent = (d.hang_nhan || d.hang_the) + (d.he_so > 1 ? ' · tích x' + d.he_so : '');
             $('loy-ma-the').value = d.ma_the;
             $('loy-input').value = 0;
             $('loy-info').classList.remove('hidden');
+            applyTierDiscount(d);   // tự áp ưu đãi giảm giá theo hạng
             recompute();
         } catch (e) { $('loy-msg').textContent = 'Lỗi tra cứu thẻ.'; }
+    }
+
+    // Tự điền chiết khấu (%) theo ưu đãi của hạng thẻ. Giảm theo TIỀN → quy ra % của hóa đơn.
+    function applyTierDiscount(d) {
+        const note = $('loy-uudai');
+        note.classList.add('hidden');
+        note.textContent = '';
+        if (!ckInput || !d || !(d.giam_gia_tri > 0)) return;
+
+        let pct = 0, moTa = '';
+        if (d.giam_loai === 'phan_tram') {
+            pct = Math.min(100, d.giam_gia_tri);
+            moTa = 'giảm ' + d.giam_gia_tri + '%';
+        } else { // 'tien'
+            pct = total > 0 ? Math.min(100, Math.round(d.giam_gia_tri / total * 10000) / 100) : 0;
+            moTa = 'giảm ' + fmt(d.giam_gia_tri);
+        }
+        if (pct > 0) {
+            ckInput.value = pct;
+            ckInput.dispatchEvent(new Event('input'));
+            note.textContent = 'Ưu đãi hạng ' + (d.hang_nhan || d.hang_the) + ': ' + moTa + ' — đã áp vào ô chiết khấu (' + pct + '%).';
+            note.classList.remove('hidden');
+        }
     }
 
     function recompute() {
@@ -287,6 +312,8 @@ document.addEventListener('DOMContentLoaded', () => {
     $('loy-clear').addEventListener('click', () => {
         cfg = null; balance = 0; $('loy-info').classList.add('hidden');
         $('loy-q').value = ''; $('loy-msg').textContent = ''; clearHidden();
+        $('loy-uudai').classList.add('hidden');
+        if (ckInput) { ckInput.value = 0; ckInput.dispatchEvent(new Event('input')); }   // bỏ ưu đãi hạng
     });
 });
 </script>
