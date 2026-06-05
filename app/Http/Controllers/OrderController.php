@@ -433,8 +433,36 @@ class OrderController extends Controller
     {
         $this->assertCustomerOwnsOrder($maOrder);
 
-        $order = Order::findOrFail($maOrder);
-        return view('customer.status', compact('order'));
+        $order = Order::with(['chiTietOrders.mon', 'chiTietOrders.options'])->findOrFail($maOrder);
+        $items = $order->chiTietOrders;
+
+        // Phân loại: đồ ăn (danh mục Eats = DM007) hay đồ uống → chọn lời nhắn.
+        $onlyEats = $items->isNotEmpty()
+            && $items->every(fn ($ct) => optional($ct->mon)->ma_danh_muc === 'DM007');
+        $prepMessage = $onlyEats
+            ? 'Món ăn của bạn đang được chuẩn bị trong giây lát'
+            : 'Đồ uống của bạn đang được chuẩn bị trong giây lát';
+
+        // Đếm ngược 5 phút khi đang pha chế (mốc = thời điểm xác nhận → dang_pha_che).
+        $brewRemainingSec = null;
+        if ($order->trang_thai === 'dang_pha_che') {
+            $elapsed = $order->thoi_gian_xac_nhan
+                ? $order->thoi_gian_xac_nhan->diffInSeconds(now())
+                : 0;
+            $brewRemainingSec = max(0, 300 - $elapsed);
+        }
+
+        // Các đơn khác trong phiên của khách (để chuyển nhanh).
+        $otherCodes = array_values(array_diff((array) session('customer_orders', []), [$maOrder]));
+        $otherOrders = empty($otherCodes)
+            ? collect()
+            : Order::whereIn('ma_order', $otherCodes)
+                ->orderByDesc('ngay_order')->orderByDesc('gio_order')
+                ->get(['ma_order', 'trang_thai']);
+
+        return view('customer.status', compact(
+            'order', 'items', 'onlyEats', 'prepMessage', 'brewRemainingSec', 'otherOrders'
+        ));
     }
 
     /** JSON polling cho trang trạng thái khách */

@@ -200,5 +200,6 @@ Route::middleware(['auth.staff'])->group(function () {
         Route::put('/stockcheck/{id}/cancel',  [StockCheckController::class,'cancel'] )->name('stockcheck.cancel');
         Route::get('/report',        [ReportController::class, 'index'] )->name('report');
         Route::get('/report/export', [ReportController::class, 'export'])->name('report.export');
+        Route::get('/report/print',  [ReportController::class, 'print'] )->name('report.print');
     });
 });
