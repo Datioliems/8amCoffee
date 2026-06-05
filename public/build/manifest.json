@@ -1,0 +1,66 @@
+{
+  "_OrbitControls-DFj2Sc__.js": {
+    "file": "assets/OrbitControls-DFj2Sc__.js",
+    "name": "OrbitControls"
+  },
+  "_chart-Cj2VjqGg.js": {
+    "file": "assets/chart-Cj2VjqGg.js",
+    "name": "chart"
+  },
+  "resources/css/app.css": {
+    "file": "assets/app-ZAbLZ3BN.css",
+    "src": "resources/css/app.css",
+    "isEntry": true
+  },
+  "resources/js/analytics.js": {
+    "file": "assets/analytics-Bg0il7ey.js",
+    "name": "analytics",
+    "src": "resources/js/analytics.js",
+    "isEntry": true,
+    "imports": [
+      "_chart-Cj2VjqGg.js"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-CQ859fhb.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true
+  },
+  "resources/js/dashboard.js": {
+    "file": "assets/dashboard-BHV2tbFP.js",
+    "name": "dashboard",
+    "src": "resources/js/dashboard.js",
+    "isEntry": true,
+    "imports": [
+      "_chart-Cj2VjqGg.js"
+    ]
+  },
+  "resources/js/floorplan.js": {
+    "file": "assets/floorplan-BPGgrDSw.js",
+    "name": "floorplan",
+    "src": "resources/js/floorplan.js",
+    "isEntry": true,
+    "imports": [
+      "_OrbitControls-DFj2Sc__.js"
+    ]
+  },
+  "resources/js/mon-viewer.js": {
+    "file": "assets/mon-viewer-DDEj6VtN.js",
+    "name": "mon-viewer",
+    "src": "resources/js/mon-viewer.js",
+    "isEntry": true,
+    "imports": [
+      "_OrbitControls-DFj2Sc__.js"
+    ]
+  },
+  "resources/js/showroom.js": {
+    "file": "assets/showroom-DeggwsQF.js",
+    "name": "showroom",
+    "src": "resources/js/showroom.js",
+    "isEntry": true,
+    "imports": [
+      "_OrbitControls-DFj2Sc__.js"
+    ]
+  }
+}

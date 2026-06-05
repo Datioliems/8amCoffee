@@ -1,0 +1,182 @@
+@import 'tailwindcss';
+
+@layer base {
+    :root {
+        --am-red: #e82c2a;
+        --am-red-dark: #bb0011;
+        --am-brown: #522c25;
+        --am-ink: #1a1a1a;
+        --am-cream: #fcfafa;
+        --am-froth: #f2f2f2;
+        --am-olive: #52613b;
+    }
+
+    body {
+        font-family: "Work Sans", "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+        letter-spacing: 0;
+    }
+}
+
+.am-display {
+    font-family: "EB Garamond", Georgia, serif;
+    font-weight: 400;
+}
+
+.am-headline {
+    font-family: "Chivo", "Inter", sans-serif;
+}
+
+.am-mono {
+    font-family: "Space Mono", ui-monospace, monospace;
+}
+
+/* Scrollbar an cho category pills */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Truncate helpers */
+.line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.am-shadow {
+    box-shadow: 0 20px 70px rgba(26, 26, 26, 0.08);
+}
+
+.am-red {
+    background: var(--am-red);
+}
+
+.am-store-stage {
+    perspective: 900px;
+}
+
+.am-store-floor {
+    transform: rotateX(58deg) rotateZ(-28deg);
+    transform-style: preserve-3d;
+    background:
+        linear-gradient(90deg, rgba(82, 44, 37, 0.08) 1px, transparent 1px),
+        linear-gradient(rgba(82, 44, 37, 0.08) 1px, transparent 1px),
+        linear-gradient(135deg, #fff8f4, #f0eded);
+    background-size: 28px 28px, 28px 28px, 100% 100%;
+}
+
+.am-table-3d {
+    transform: translateZ(18px);
+    box-shadow: 14px 18px 0 rgba(82, 44, 37, 0.12);
+}
+
+.am-chair-3d {
+    transform: translateZ(8px);
+}
+
+.am-brand-mark {
+    position: relative;
+    display: inline-flex;
+    overflow: visible;
+}
+
+.am-brand-mark::after {
+    animation: amLogoDrip 2.8s ease-in-out infinite;
+    background: var(--am-red);
+    border-radius: 9999px;
+    bottom: -10px;
+    content: "";
+    height: 10px;
+    left: 50%;
+    opacity: 0;
+    position: absolute;
+    transform: translateX(-50%) translateY(-12px) scale(0.7);
+    width: 7px;
+}
+
+.am-logo-drop {
+    animation: amDrop 2s cubic-bezier(0.2, 0.75, 0.2, 1) forwards;
+}
+
+.am-logo-splash {
+    animation: amSplash 0.55s ease-out 1.65s forwards;
+}
+
+.am-welcome-reveal {
+    animation: amFadeInUp 0.75s ease-out 2.05s forwards;
+}
+
+@keyframes amLogoDrip {
+    0%, 54%, 100% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-12px) scale(0.7);
+    }
+    18% {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+    }
+    38% {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px) scale(0.45);
+    }
+}
+
+@keyframes amDrop {
+    0% {
+        opacity: 1;
+        transform: translateY(-96px) scale(0.95);
+    }
+    55% {
+        opacity: 1;
+        transform: translateY(24vh) scale(0.66);
+    }
+    100% {
+        opacity: 0;
+        transform: translateY(54vh) scale(0.22);
+    }
+}
+
+@keyframes amSplash {
+    0% {
+        opacity: 0;
+        transform: scale(0.2);
+    }
+    42% {
+        opacity: 0.45;
+        transform: scale(1.4);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2.1);
+    }
+}
+
+@keyframes amFadeInUp {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .am-brand-mark::after,
+    .am-logo-drop,
+    .am-logo-splash,
+    .am-welcome-reveal {
+        animation: none;
+    }
+
+    .am-welcome-reveal {
+        opacity: 1;
+    }
+}

@@ -1,0 +1,312 @@
+# 8AM Coffee — Biểu đồ mức vật lý (Physical Data Model)
+
+> Sinh tự động từ DB `8amcoffee` (information_schema). PK = khóa chính, FK = khóa ngoại, UK = duy nhất.
+
+```mermaid
+erDiagram
+    ban {
+        varchar(10) ma_ban PK
+        int(10)_unsigned so_ban
+        tinyint(3)_unsigned so_ghe
+        varchar(255) anh "nullable"
+        varchar(50) vi_tri "nullable"
+        varchar(10) trang_thai
+        varchar(10) ma_chi_nhanh FK
+    }
+    chi_nhanh {
+        varchar(10) ma_chi_nhanh PK
+        varchar(100) ten_chi_nhanh UK
+        varchar(255) dia_chi "nullable"
+        varchar(15) sdt "nullable"
+        varchar(120) model_3d "nullable"
+    }
+    chi_tiet_kiem_ke {
+        varchar(20) ma_pkk PK,FK
+        varchar(10) ma_nl PK,FK
+        decimal(12_2) sl_he_thong
+        decimal(12_2) sl_thuc_te
+        decimal(12_2) chenh_lech "nullable"
+        decimal(12_0) don_gia_tb "nullable"
+    }
+    chi_tiet_nhap_kho {
+        varchar(20) ma_pnk PK,FK
+        varchar(10) ma_nl PK,FK
+        decimal(12_2) so_luong
+        decimal(12_0) don_gia
+        decimal(15_0) tong_tien "nullable"
+    }
+    chi_tiet_order {
+        bigint(20)_unsigned id PK
+        varchar(20) ma_order FK
+        varchar(10) ma_mon FK
+        int(10)_unsigned so_luong
+        decimal(12_0) don_gia_tai_thoi_diem
+        varchar(200) ghi_chu "nullable"
+    }
+    chi_tiet_order_option {
+        bigint(20)_unsigned id PK
+        bigint(20)_unsigned chi_tiet_id FK
+        varchar(20) ma_order
+        varchar(10) ma_mon
+        varchar(30) loai_option
+        varchar(100) ten_lua_chon
+        decimal(12_0) gia_them
+    }
+    danh_muc {
+        varchar(10) ma_danh_muc PK
+        varchar(100) ten_danh_muc UK
+    }
+    dinh_muc {
+        varchar(10) ma_mon PK,FK
+        varchar(10) ma_nl PK,FK
+        decimal(10_2) so_luong_dung
+        varchar(200) mo_ta "nullable"
+    }
+    email_log {
+        bigint(20)_unsigned id PK
+        varchar(30) loai
+        varchar(150) email
+        varchar(200) tieu_de "nullable"
+        varchar(30) ma_tham_chieu "nullable"
+        varchar(20) trang_thai
+        varchar(500) loi "nullable"
+        datetime thoi_gian
+    }
+    hoa_don {
+        varchar(20) ma_hoa_don PK
+        varchar(20) ma_order FK,UK
+        varchar(10) ma_kh FK "nullable"
+        datetime thoi_gian_lap
+        decimal(12_0) tong_tien_truoc_ck
+        decimal(5_2) chiet_khau
+        decimal(12_0) tong_tien_sau_ck
+        varchar(20) phuong_thuc_tt
+        varchar(15) trang_thai
+        varchar(10) ma_nv_thu_ngan FK "nullable"
+    }
+    khach_hang {
+        varchar(10) ma_kh PK
+        varchar(100) ten_kh
+        varchar(15) sdt "nullable"
+        datetime ngay_tao
+    }
+    migrations {
+        int(10)_unsigned id PK
+        varchar(255) migration
+        int(11) batch
+    }
+    mon {
+        varchar(10) ma_mon PK
+        varchar(100) ten_mon
+        decimal(12_0) don_gia
+        varchar(500) mo_ta "nullable"
+        varchar(255) hinh_anh "nullable"
+        varchar(10) ma_danh_muc FK
+        varchar(10) trang_thai
+    }
+    mon_option {
+        varchar(10) ma_option PK
+        varchar(10) ma_mon FK "nullable"
+        varchar(30) loai_option
+        varchar(100) ten_option
+        decimal(12_0) gia_them
+        tinyint(1) bat_buoc
+        tinyint(3)_unsigned thu_tu
+        varchar(10) trang_thai
+    }
+    nguyen_lieu {
+        varchar(10) ma_nl PK
+        varchar(100) ten_nl UK
+        varchar(20) don_vi
+    }
+    nha_cung_cap {
+        varchar(10) ma_ncc PK
+        varchar(100) ten_ncc UK
+        varchar(255) dia_chi "nullable"
+        varchar(15) sdt "nullable"
+        varchar(100) email "nullable"
+    }
+    nhan_vien {
+        varchar(10) ma_nv PK
+        varchar(100) ten_nv
+        varchar(15) sdt "nullable"
+        varchar(150) email "nullable"
+        varchar(12) cccd UK "nullable"
+        varchar(255) dia_chi "nullable"
+        varchar(10) ma_chi_nhanh FK
+    }
+    nhat_ky_dang_nhap {
+        bigint(20)_unsigned id PK
+        varchar(50) ten_tk "nullable"
+        varchar(10) ma_tai_khoan "nullable"
+        varchar(10) ma_nv "nullable"
+        varchar(30) hanh_dong
+        tinyint(1) thanh_cong
+        varchar(45) dia_chi_ip "nullable"
+        varchar(255) user_agent "nullable"
+        varchar(255) chi_tiet "nullable"
+        datetime thoi_gian
+    }
+    order_logs {
+        bigint(20)_unsigned id PK
+        varchar(20) ma_order FK
+        varchar(50) hanh_dong
+        varchar(15) trang_thai_cu "nullable"
+        varchar(15) trang_thai_moi "nullable"
+        varchar(500) noi_dung "nullable"
+        longtext du_lieu "nullable"
+        varchar(10) ma_nv "nullable"
+        datetime created_at
+    }
+    orders {
+        varchar(20) ma_order PK
+        varchar(10) ma_ban FK "nullable"
+        varchar(10) ma_kh FK "nullable"
+        varchar(100) ten_khach "nullable"
+        varchar(20) sdt_khach "nullable"
+        varchar(10) ma_chi_nhanh FK
+        varchar(15) trang_thai
+        date ngay_order
+        time gio_order
+        datetime thoi_gian_xac_nhan "nullable"
+        datetime thoi_gian_phuc_vu "nullable"
+        datetime thoi_gian_thanh_toan "nullable"
+        varchar(300) ghi_chu "nullable"
+        varchar(10) hinh_thuc
+    }
+    phieu_kiem_ke {
+        varchar(20) ma_pkk PK
+        date ngay_kk
+        datetime thoi_gian_kk "nullable"
+        varchar(10) ma_chi_nhanh FK
+        varchar(10) ma_nv FK
+        varchar(15) trang_thai
+        varchar(300) ghi_chu "nullable"
+    }
+    phieu_nhap_kho {
+        varchar(20) ma_pnk PK
+        date ngay_nk
+        varchar(10) ma_ncc FK
+        varchar(10) ma_nv FK
+        varchar(10) ma_chi_nhanh FK
+        decimal(15_0) tong_gia_tri
+        varchar(10) trang_thai
+        varchar(300) ghi_chu "nullable"
+    }
+    scan_log {
+        bigint(20)_unsigned id PK
+        varchar(10) ma_ban
+        varchar(10) ma_chi_nhanh "nullable"
+        varchar(45) ip "nullable"
+        varchar(300) user_agent "nullable"
+        datetime thoi_gian
+    }
+    tai_khoan {
+        varchar(10) ma_tai_khoan PK
+        varchar(50) ten_tk UK
+        varchar(255) mat_khau
+        varchar(20) chuc_vu
+        varchar(10) trang_thai
+        int(10)_unsigned dang_nhap_sai
+        datetime khoa_den "nullable"
+        tinyint(1) xac_thuc_2_lop
+        varchar(255) otp_ma "nullable"
+        datetime otp_het_han "nullable"
+        int(10)_unsigned otp_sai
+        datetime lan_dang_nhap_cuoi "nullable"
+        varchar(45) ip_dang_nhap_cuoi "nullable"
+        datetime email_xac_thuc_luc "nullable"
+        varchar(64) kich_hoat_token "nullable"
+        datetime kich_hoat_het_han "nullable"
+        datetime tao_luc "nullable"
+        varchar(10) ma_nv FK
+    }
+    thanh_toan_online {
+        bigint(20)_unsigned id PK
+        varchar(50) ma_giao_dich UK
+        varchar(20) ma_order
+        varchar(20) cong
+        decimal(12_0) so_tien
+        decimal(5_2) chiet_khau
+        varchar(20) trang_thai
+        varchar(50) ma_gd_cong "nullable"
+        varchar(10) ma_phan_hoi "nullable"
+        varchar(10) ma_nv "nullable"
+        varchar(30) ma_hoa_don "nullable"
+        longtext du_lieu "nullable"
+        datetime thoi_gian_tao
+        datetime thoi_gian_cap_nhat "nullable"
+    }
+    ton_kho {
+        varchar(10) ma_chi_nhanh PK,FK
+        varchar(10) ma_nl PK,FK
+        decimal(12_2) sl_ton_kho_he_thong
+        decimal(12_2) sl_ton_kho_thuc_te
+        decimal(12_2) nguong_canh_bao
+        decimal(12_0) hao_hut_cost
+    }
+    topping {
+        varchar(10) ma_topping PK
+        varchar(100) ten_topping
+        decimal(12_0) gia_them
+        varchar(255) canh_bao "nullable"
+        varchar(10) trang_thai
+    }
+    vw_menu_hien_thi {
+        varchar(10) ma_mon
+        varchar(100) ten_mon
+        decimal(12_0) don_gia
+        varchar(500) mo_ta "nullable"
+        varchar(255) hinh_anh "nullable"
+        varchar(10) trang_thai
+        varchar(100) ten_danh_muc
+    }
+    vw_order_dashboard {
+        varchar(20) ma_order
+        int(10)_unsigned so_ban
+        varchar(100) ten_chi_nhanh
+        varchar(100) ten_kh "nullable"
+        varchar(15) trang_thai
+        date ngay_order
+        time gio_order
+        decimal(44_0) tong_tien "nullable"
+    }
+    vw_ton_kho_tong_quan {
+        varchar(100) ten_chi_nhanh
+        varchar(100) ten_nl
+        varchar(20) don_vi
+        decimal(12_2) sl_ton_kho_he_thong
+        decimal(12_2) sl_ton_kho_thuc_te
+        decimal(12_2) nguong_canh_bao
+        decimal(12_0) hao_hut_cost
+        varchar(8) trang_thai_kho
+    }
+    chi_nhanh ||--o{ ban : "ma_chi_nhanh"
+    nguyen_lieu ||--o{ chi_tiet_kiem_ke : "ma_nl"
+    phieu_kiem_ke ||--o{ chi_tiet_kiem_ke : "ma_pkk"
+    nguyen_lieu ||--o{ chi_tiet_nhap_kho : "ma_nl"
+    phieu_nhap_kho ||--o{ chi_tiet_nhap_kho : "ma_pnk"
+    mon ||--o{ chi_tiet_order : "ma_mon"
+    orders ||--o{ chi_tiet_order : "ma_order"
+    chi_tiet_order ||--o{ chi_tiet_order_option : "chi_tiet_id"
+    mon ||--o{ dinh_muc : "ma_mon"
+    nguyen_lieu ||--o{ dinh_muc : "ma_nl"
+    khach_hang ||--o{ hoa_don : "ma_kh"
+    nhan_vien ||--o{ hoa_don : "ma_nv_thu_ngan"
+    orders ||--o{ hoa_don : "ma_order"
+    danh_muc ||--o{ mon : "ma_danh_muc"
+    mon ||--o{ mon_option : "ma_mon"
+    chi_nhanh ||--o{ nhan_vien : "ma_chi_nhanh"
+    ban ||--o{ orders : "ma_ban"
+    chi_nhanh ||--o{ orders : "ma_chi_nhanh"
+    khach_hang ||--o{ orders : "ma_kh"
+    orders ||--o{ order_logs : "ma_order"
+    chi_nhanh ||--o{ phieu_kiem_ke : "ma_chi_nhanh"
+    nhan_vien ||--o{ phieu_kiem_ke : "ma_nv"
+    chi_nhanh ||--o{ phieu_nhap_kho : "ma_chi_nhanh"
+    nha_cung_cap ||--o{ phieu_nhap_kho : "ma_ncc"
+    nhan_vien ||--o{ phieu_nhap_kho : "ma_nv"
+    nhan_vien ||--o{ tai_khoan : "ma_nv"
+    chi_nhanh ||--o{ ton_kho : "ma_chi_nhanh"
+    nguyen_lieu ||--o{ ton_kho : "ma_nl"
+```

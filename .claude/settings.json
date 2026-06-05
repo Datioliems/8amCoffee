@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(robocopy \"d:\\\\xampp\\\\htdocs\\\\8amCoffee-Datio_nangcap_mahoa\" \"d:\\\\xampp\\\\htdocs\\\\8amCoffee-QRml\" /E /XD vendor node_modules .git storage /NFL /NDL /NJH /NJS /NC /NS /NP)",
+      "Bash(robocopy \"d:\\\\xampp\\\\htdocs\\\\8amCoffee-Datio_nangcap_mahoa\" \"d:\\\\xampp\\\\htdocs\\\\8amCoffee-QRml\" /E /XD vendor node_modules .git)",
+      "Bash(Select-String \"Files|Dirs|Bytes\")"
+    ]
+  }
+}

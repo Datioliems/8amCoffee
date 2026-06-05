@@ -1,0 +1,261 @@
+diff --git a/app/Http/Controllers/BanController.php b/app/Http/Controllers/BanController.php
+index 33a7235..80aff31 100644
+--- a/app/Http/Controllers/BanController.php
++++ b/app/Http/Controllers/BanController.php
+@@ -7,21 +7,94 @@ use Illuminate\Support\Facades\DB;
+ 
+ class BanController extends Controller
+ {
++    /** Các trạng thái order được coi là "đang mở" (bàn đang có khách) */
++    private const ACTIVE_ORDER = ['cho_xac_nhan', 'da_xac_nhan', 'dang_pha_che', 'da_phuc_vu'];
++
++    // ── STAFF ──────────────────────────────────────────────────
+     public function index()
+     {
+         $maChiNhanh = session('ma_chi_nhanh');
++        $bans = Ban::where('ma_chi_nhanh', $maChiNhanh)->orderBy('so_ban')->get();
++        $orderCounts = $this->orderCounts($maChiNhanh);
++
++        return view('staff.ban-list', compact('bans', 'orderCounts'));
++    }
++
++    public function floorplan()
++    {
++        return view('staff.floorplan');
++    }
++
++    public function apiTables()
++    {
++        return $this->tablesJson(session('ma_chi_nhanh'));
++    }
++
++    public function moveTable(string $from, string $to)
++    {
++        return $this->doMove($from, $to, session('ma_chi_nhanh'));
++    }
++
++    // ── CUSTOMER (chi nhánh suy ra từ bàn, không cần đăng nhập) ─
++    public function apiTablesByBan(string $maBan)
++    {
++        $ban = Ban::findOrFail($maBan);
++        return $this->tablesJson($ban->ma_chi_nhanh);
++    }
+ 
+-        $bans = Ban::where('ma_chi_nhanh', $maChiNhanh)
+-            ->orderBy('so_ban')
+-            ->get();
++    public function moveByBan(string $maBan, string $to)
++    {
++        $ban = Ban::findOrFail($maBan);
++        return $this->doMove($maBan, $to, $ban->ma_chi_nhanh);
++    }
++
++    // ── SHARED ─────────────────────────────────────────────────
++    private function tablesJson(?string $branch)
++    {
++        $counts = $this->orderCounts($branch);
++        $bans = Ban::where('ma_chi_nhanh', $branch)->orderBy('so_ban')->get();
++
++        return response()->json($bans->map(fn ($b) => [
++            'ma_ban'     => $b->ma_ban,
++            'so_ban'     => $b->so_ban,
++            'vi_tri'     => $b->vi_tri,
++            'trang_thai' => $b->trang_thai,
++            'orders'     => (int) ($counts[$b->ma_ban] ?? 0),
++        ])->values());
++    }
++
++    private function doMove(string $from, string $to, ?string $branch)
++    {
++        if ($from === $to) {
++            return response()->json(['ok' => false, 'msg' => 'Trùng bàn'], 422);
++        }
+ 
+-        $orderCounts = DB::table('ORDERS')
+-            ->where('ma_chi_nhanh', $maChiNhanh)
+-            ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan', 'dang_pha_che', 'da_phuc_vu'])
++        DB::transaction(function () use ($from, $to, $branch) {
++            DB::table('ORDERS')
++                ->where('ma_chi_nhanh', $branch)
++                ->where('ma_ban', $from)
++                ->whereIn('trang_thai', self::ACTIVE_ORDER)
++                ->update(['ma_ban' => $to]);
++
++            Ban::where('ma_ban', $to)->update(['trang_thai' => 'co_khach']);
++
++            $conLai = DB::table('ORDERS')
++                ->where('ma_ban', $from)
++                ->whereIn('trang_thai', self::ACTIVE_ORDER)
++                ->count();
++            Ban::where('ma_ban', $from)->update(['trang_thai' => $conLai ? 'co_khach' : 'trong']);
++        });
++
++        return response()->json(['ok' => true]);
++    }
++
++    private function orderCounts(?string $branch)
++    {
++        return DB::table('ORDERS')
++            ->where('ma_chi_nhanh', $branch)
++            ->whereIn('trang_thai', self::ACTIVE_ORDER)
+             ->select('ma_ban', DB::raw('COUNT(*) as cnt'))
+             ->groupBy('ma_ban')
+             ->pluck('cnt', 'ma_ban');
+-
+-        return view('staff.ban-list', compact('bans', 'orderCounts'));
+     }
+ }
+diff --git a/database/seeders/BanSeeder.php b/database/seeders/BanSeeder.php
+index edffad3..c1eaa0e 100644
+--- a/database/seeders/BanSeeder.php
++++ b/database/seeders/BanSeeder.php
+@@ -9,14 +9,19 @@ class BanSeeder extends Seeder
+ {
+     public function run(): void
+     {
++        // 17 bàn khớp với model 3D (public/models/floorplan.glb):
++        //   B001–B008 = Tầng 1, B009–B013 = Tầng 2, B014–B017 = Tầng 3
+         $bans = [];
++        for ($i = 1; $i <= 17; $i++) {
++            if ($i <= 8)       $tang = 'Tầng 1';
++            elseif ($i <= 13)  $tang = 'Tầng 2';
++            else               $tang = 'Tầng 3';
+ 
+-        for ($i = 1; $i <= 10; $i++) {
+             $bans[] = [
+-                'ma_ban' => 'B'.str_pad((string) $i, 3, '0', STR_PAD_LEFT),
+-                'so_ban' => $i,
+-                'vi_tri' => $i <= 5 ? 'Tầng 1' : 'Tầng 2',
+-                'trang_thai' => 'trong',
++                'ma_ban'       => 'B'.str_pad((string) $i, 3, '0', STR_PAD_LEFT),
++                'so_ban'       => $i,
++                'vi_tri'       => $tang,
++                'trang_thai'   => 'trong',
+                 'ma_chi_nhanh' => 'CN001',
+             ];
+         }
+diff --git a/package.json b/package.json
+index 28d8b6d..ae57d49 100644
+--- a/package.json
++++ b/package.json
+@@ -12,5 +12,8 @@
+         "laravel-vite-plugin": "^1.0.0",
+         "tailwindcss": "^4.3.0",
+         "vite": "^6.0.11"
++    },
++    "dependencies": {
++        "three": "^0.184.0"
+     }
+ }
+diff --git a/resources/views/customer/menu.blade.php b/resources/views/customer/menu.blade.php
+index f3c92ed..12f4062 100644
+--- a/resources/views/customer/menu.blade.php
++++ b/resources/views/customer/menu.blade.php
+@@ -5,13 +5,14 @@
+ @if($maOrder)
+ <meta name="ma-order" content="{{ $maOrder }}">
+ @endif
++@vite('resources/js/floorplan.js')
+ @endpush
+ 
+ @section('content')
+ <section class="grid gap-5 lg:grid-cols-[1.05fr_0.95fr] lg:items-stretch">
+     <div class="overflow-hidden rounded-[1.75rem] bg-[#1A1A1A] text-white am-shadow">
+         <div class="relative min-h-72 p-6 md:min-h-96 md:p-8">
+-            <img src="{{ asset('images/cafe_bg.jpg') }}" alt="Không gian 8AM Coffee" class="absolute inset-0 h-full w-full object-cover opacity-50">
++            <img src="{{ asset('images/8-AM-Coffee-Roastery-16.jpg') }}" alt="Không gian 8AM Coffee" class="absolute inset-0 h-full w-full object-cover opacity-50">
+             <div class="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-[#1A1A1A]/45 to-transparent"></div>
+             <div class="relative flex h-full min-h-60 flex-col justify-between md:min-h-80">
+                 <div class="flex items-center justify-between gap-3">
+@@ -37,22 +38,22 @@
+             </div>
+             <span class="rounded-full bg-[#CADCAC]/70 px-3 py-1.5 text-xs font-semibold text-[#3D4C27]">3D ready</span>
+         </div>
+-        <div class="am-store-stage h-64 overflow-hidden rounded-3xl bg-[#F2F2F2]">
+-            <div class="am-store-floor relative mx-auto mt-6 h-72 w-72 rounded-[2rem] border border-[#522C25]/10">
+-                <div class="absolute left-8 top-8 h-24 w-20 rounded-xl bg-[#522C25] shadow-xl"></div>
+-                <div class="absolute right-8 top-10 h-16 w-16 rounded-full bg-[#E82C2A] shadow-xl"></div>
+-                <div class="am-table-3d absolute bottom-16 left-16 h-16 w-16 rounded-2xl bg-white ring-4 ring-[#E82C2A]"></div>
+-                <div class="am-chair-3d absolute bottom-10 left-20 h-8 w-10 rounded-full bg-[#CADCAC]"></div>
+-                <div class="am-chair-3d absolute bottom-36 left-20 h-8 w-10 rounded-full bg-[#CADCAC]"></div>
+-                <div class="absolute bottom-14 right-14 grid grid-cols-2 gap-3">
+-                    <span class="h-12 w-12 rounded-xl bg-white shadow"></span>
+-                    <span class="h-12 w-12 rounded-xl bg-white shadow"></span>
+-                    <span class="h-12 w-12 rounded-xl bg-white shadow"></span>
+-                    <span class="h-12 w-12 rounded-xl bg-white shadow"></span>
+-                </div>
++        <div id="floorplan-root"
++             data-model-url="{{ asset('models/floorplan.glb') }}"
++             data-tables-url="{{ route('customer.tables', $ban->ma_ban) }}"
++             data-move-url="{{ route('customer.move', ['ma_ban' => $ban->ma_ban, 'to' => '__TO__']) }}"
++             data-current-table="{{ $ban->ma_ban }}">
++            <div class="mb-3 flex flex-wrap gap-1.5 text-[11px] text-[#522C25]/70">
++                <button data-floor="all"    class="rounded-full bg-[#1A1A1A] px-2.5 py-1 text-white">Tất cả</button>
++                <button data-floor="Tầng 1" class="rounded-full bg-white px-2.5 py-1 ring-1 ring-[#522C25]/15">Tầng 1</button>
++                <button data-floor="Tầng 2" class="rounded-full bg-white px-2.5 py-1 ring-1 ring-[#522C25]/15">Tầng 2</button>
++                <button data-floor="Tầng 3" class="rounded-full bg-white px-2.5 py-1 ring-1 ring-[#522C25]/15">Tầng 3</button>
++            </div>
++            <div id="fp-canvas" class="h-64 overflow-hidden rounded-3xl bg-[#F2F2F2]"></div>
++            <div id="fp-info" class="mt-3 text-sm leading-6 text-[#522C25]/65">
++                🔵 Bàn bạn đang ngồi · 🟢 Trống · 🔴 Có khách. Chạm vào một bàn để xem & đổi.
+             </div>
+         </div>
+-        <p class="mt-4 text-sm leading-6 text-[#522C25]/65">Khối này đang là minh họa nhẹ bằng CSS. Khi có mô hình AI 3D, bạn có thể thay bằng canvas Three.js và file `.glb` của quán.</p>
+     </div>
+ </section>
+ 
+diff --git a/resources/views/layouts/app.blade.php b/resources/views/layouts/app.blade.php
+index 3b53f00..b382b19 100644
+--- a/resources/views/layouts/app.blade.php
++++ b/resources/views/layouts/app.blade.php
+@@ -26,6 +26,10 @@
+             <span class="flex h-8 w-8 items-center justify-center rounded-lg {{ request()->routeIs('dashboard') ? 'bg-white/15' : 'bg-white' }}">⌂</span>
+             Tổng quan
+         </a>
++        <a href="{{ route('floorplan') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition {{ request()->routeIs('floorplan') ? 'bg-[#1A1A1A] text-white' : 'text-[#522C25] hover:bg-[#F2F2F2]' }}">
++            <span class="flex h-8 w-8 items-center justify-center rounded-lg {{ request()->routeIs('floorplan') ? 'bg-white/15' : 'bg-white' }}">▦</span>
++            Sơ đồ 3D
++        </a>
+         <a href="{{ route('orders.index') }}" class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition {{ request()->routeIs('orders.*') || request()->routeIs('payment.*') ? 'bg-[#1A1A1A] text-white' : 'text-[#522C25] hover:bg-[#F2F2F2]' }}">
+             <span class="flex h-8 w-8 items-center justify-center rounded-lg {{ request()->routeIs('orders.*') || request()->routeIs('payment.*') ? 'bg-white/15' : 'bg-white' }}">□</span>
+             Đơn hàng
+diff --git a/routes/web.php b/routes/web.php
+index 97eb307..b60ea36 100644
+--- a/routes/web.php
++++ b/routes/web.php
+@@ -28,6 +28,10 @@ Route::prefix('order')->name('customer.')->group(function () {
+     Route::post('/{ma_order}/confirm',         [OrderController::class, 'confirmByCustomer'])->name('confirm');
+     Route::get('/{ma_order}/status',           [OrderController::class, 'status']           )->name('status');
+     Route::get('/{ma_order}/status.json',      [OrderController::class, 'statusJson']       )->name('statusJson');
++
++    // Sơ đồ bàn 3D cho khách (public, chi nhánh suy từ bàn)
++    Route::get('/{ma_ban}/tables',             [BanController::class,   'apiTablesByBan']   )->name('tables');
++    Route::post('/{ma_ban}/move/{to}',         [BanController::class,   'moveByBan']        )->name('move');
+ });
+ 
+ // ── AUTH ──────────────────────────────────────────────────────
+@@ -40,6 +44,11 @@ Route::middleware(['auth.staff'])->group(function () {
+ 
+     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+ 
++    // ── SƠ ĐỒ BÀN 3D (Three.js) ──────────────────────────────
++    Route::get('/floorplan',                    [BanController::class, 'floorplan'] )->name('floorplan');
++    Route::get('/floorplan/tables',             [BanController::class, 'apiTables'] )->name('floorplan.tables');
++    Route::post('/floorplan/move/{from}/{to}',  [BanController::class, 'moveTable'] )->name('floorplan.move');
++
+     Route::prefix('orders')->name('orders.')->group(function () {
+         Route::get('/',                      [OrderController::class, 'index']       )->name('index');
+         Route::get('/api/list',              [OrderController::class, 'apiList']     )->name('api.list');
+diff --git a/vite.config.js b/vite.config.js
+index 29fbfe9..357f015 100644
+--- a/vite.config.js
++++ b/vite.config.js
+@@ -5,7 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
+ export default defineConfig({
+     plugins: [
+         laravel({
+-            input: ['resources/css/app.css', 'resources/js/app.js'],
++            input: ['resources/css/app.css', 'resources/js/app.js', 'resources/js/floorplan.js'],
+             refresh: true,
+         }),
+         tailwindcss(),

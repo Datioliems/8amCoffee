@@ -1,0 +1,25 @@
+{
+    "name": "nhom29/8am-coffee",
+    "description": "QR Order System - 8AM Coffee & Roastery",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.2",
+        "laravel/framework": "^11.0",
+        "simplesoftwareio/simple-qrcode": "^4.2",
+        "doctrine/dbal": "^3.0"
+    },
+    "require-dev": {
+        "fakerphp/faker": "^1.9",
+        "laravel/pint": "^1.0",
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "scripts": {}
+}

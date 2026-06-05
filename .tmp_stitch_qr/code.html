@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>8am.cafe - Welcome</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&amp;family=Chivo:wght@600&amp;family=EB+Garamond:wght@300&amp;family=Work+Sans:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#eae7e7",
+                        "crema-white": "#FCFAFA",
+                        "on-surface-variant": "#5d3f3c",
+                        "espresso-black": "#1A1A1A",
+                        "tertiary-fixed": "#d7e9b8",
+                        "surface": "#fcf9f8",
+                        "surface-bright": "#fcf9f8",
+                        "primary-fixed": "#ffdad6",
+                        "bean-brown": "#522C25",
+                        "inverse-on-surface": "#f3f0ef",
+                        "surface-container": "#f0eded",
+                        "secondary-container": "#ffc4b9",
+                        "on-secondary-fixed-variant": "#653c34",
+                        "on-background": "#1c1b1b",
+                        "on-secondary-fixed": "#32120c",
+                        "on-primary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "inverse-primary": "#ffb4ab",
+                        "on-error": "#ffffff",
+                        "success-green": "#CADCAC",
+                        "secondary-fixed-dim": "#f3b9ae",
+                        "error-container": "#ffdad6",
+                        "primary": "#bb0011",
+                        "on-primary-fixed": "#410002",
+                        "secondary-fixed": "#ffdad4",
+                        "inverse-surface": "#313030",
+                        "froth-gray": "#F2F2F2",
+                        "roast-red": "#E82C2A",
+                        "tertiary": "#52613b",
+                        "on-primary-container": "#fffbff",
+                        "surface-tint": "#c00012",
+                        "primary-container": "#e12626",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#3d4c27",
+                        "on-primary-fixed-variant": "#93000b",
+                        "tertiary-fixed-dim": "#bbcd9e",
+                        "surface-container-low": "#f6f3f2",
+                        "on-tertiary-container": "#faffe9",
+                        "on-secondary-container": "#7b4e46",
+                        "on-tertiary-fixed": "#131f02",
+                        "outline": "#916f6b",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#fcf9f8",
+                        "surface-dim": "#dcd9d9",
+                        "tertiary-container": "#6a7a51",
+                        "error": "#ba1a1a",
+                        "outline-variant": "#e6bdb8",
+                        "secondary": "#80534a",
+                        "surface-variant": "#e5e2e1",
+                        "on-surface": "#1c1b1b",
+                        "surface-container-highest": "#e5e2e1",
+                        "on-secondary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-padding": "24px",
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "gutter": "16px",
+                        "section-gap": "50px"
+                    },
+                    "fontFamily": {
+                        "label-mono": ["Space Mono", "monospace"],
+                        "headline-md": ["Chivo", "sans-serif"],
+                        "display-lg": ["EB Garamond", "serif"],
+                        "price-display": ["Space Mono", "monospace"],
+                        "body-md": ["Work Sans", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "label-mono": ["14px", { "lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "fontWeight": "300" }],
+                        "price-display": ["18px", { "lineHeight": "1", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.6", "fontWeight": "400" }]
+                    },
+                    "animation": {
+                        'drop': 'drop 2s ease-in forwards',
+                        'splash': 'splash 0.5s ease-out forwards 2s',
+                        'fade-in-up': 'fadeInUp 0.8s ease-out forwards 2.5s'
+                    },
+                    "keyframes": {
+                        drop: {
+                            '0%': { transform: 'translateY(-100px) scale(1)', opacity: '1' },
+                            '50%': { transform: 'translateY(20vh) scale(0.5)', opacity: '1', borderRadius: '50%' },
+                            '100%': { transform: 'translateY(60vh) scale(0.2)', opacity: '0', borderRadius: '50%' },
+                        },
+                        splash: {
+                            '0%': { transform: 'scale(0)', opacity: '0' },
+                            '50%': { transform: 'scale(1.5)', opacity: '0.5' },
+                            '100%': { transform: 'scale(2)', opacity: '0' },
+                        },
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .input-focus-ring:focus {
+            box-shadow: 0 0 0 2px #E82C2A;
+            border-color: #E82C2A;
+        }
+    </style>
+</head>
+<body class="bg-crema-white min-h-screen flex flex-col items-center justify-center overflow-hidden font-body-md text-espresso-black">
+<!-- Animation Container -->
+<div class="relative w-full max-w-md mx-auto h-[70vh] flex flex-col items-center justify-start pt-20">
+<!-- Logo Drop Animation -->
+<div class="absolute top-10 flex flex-col items-center justify-center animate-drop z-10">
+<img alt="8am.cafe Logo" class="w-32 h-32 rounded-full shadow-lg object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCkHNQb2W5xUVyUtwYU3NvuBBxV6-7AtgjBOt-iL5W-rsPC_BvzNTui_RBdsfVoauaHrIKHL71AvGvQE2ATr60CdC9b-vrYyBSlLwySvHp2-uAIjFqh7lYyxQ2QNFlzRTFQ1Z0sweM6dYy4sKdGBh9o1fJIOAlSnEcl99OfdK3-mMMxVZ5Jqn7b6y4YMk6MLz_meX4P1Hv3cKTf0hA6yya13s1c4fYHg8eqjkSCEjWea0Q7EZTuXox_cpv1FiAYHAw-ZVue7hqDyA"/>
+</div>
+<!-- Splash Effect -->
+<div class="absolute bottom-20 w-16 h-4 bg-roast-red/20 rounded-full blur-sm opacity-0 animate-splash"></div>
+<!-- Interactive Form Container -->
+<div class="absolute bottom-0 w-full px-container-padding opacity-0 animate-fade-in-up flex flex-col items-center gap-stack-md z-20 pb-10">
+<div class="w-full text-center mb-4">
+<h1 class="font-display-lg text-4xl text-bean-brown mb-2">Good morning.</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Let's craft your perfect cup.</p>
+</div>
+<div class="w-full max-w-sm">
+<label class="sr-only" for="name">Enter your name</label>
+<div class="relative">
+<input class="w-full bg-froth-gray border-none rounded-2xl py-4 px-6 font-label-mono text-label-mono text-center text-espresso-black placeholder:text-on-surface-variant/50 focus:ring-0 input-focus-ring transition-all duration-300" id="name" name="name" placeholder="Enter your name" type="text"/>
+</div>
+</div>
+<button class="w-full max-w-sm bg-roast-red hover:bg-surface-tint text-on-primary rounded-full py-4 px-6 font-headline-md text-headline-md flex items-center justify-center gap-2 shadow-lg transition-transform hover:scale-[0.98] active:scale-95 duration-200 mt-2">
+<span>Start Ordering</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">arrow_forward</span>
+</button>
+</div>
+</div>
+</body></html>
