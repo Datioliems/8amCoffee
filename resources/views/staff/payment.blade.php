@@ -359,8 +359,8 @@ document.addEventListener('DOMContentLoaded', () => {
         let reading = false;
         async function start(port) {
             if (reading) return;
-            try { await port.open({ baudRate: 9600 }); } catch (e) { /* có thể đã mở */ }
-            if (!port.readable) return;
+            try { await port.open({ baudRate: 9600 }); } catch (e) { /* InvalidStateError = đã mở sẵn */ }
+            if (!port.readable) { st.textContent = 'Mở cổng thất bại — ĐÓNG Arduino Serial Monitor / bridge rồi thử lại.'; return; }
             reading = true; btn.textContent = 'Đầu đọc ●'; st.textContent = 'Đầu đọc sẵn sàng — quẹt thẻ...';
             try {
                 const dec = new TextDecoderStream();
@@ -384,8 +384,14 @@ document.addEventListener('DOMContentLoaded', () => {
         navigator.serial.getPorts().then((p) => { if (p.length && !reading) start(p[0]); }).catch(() => {});
         navigator.serial.addEventListener('connect', (e) => { if (!reading) start(e.target); });
         btn.addEventListener('click', async () => {
-            try { start(await navigator.serial.requestPort()); }
-            catch (e) { st.textContent = 'Không kết nối được: ' + e.message + ' (đóng Serial Monitor/bridge nếu đang giữ cổng).'; }
+            try {
+                const granted = await navigator.serial.getPorts();
+                start(granted.length ? granted[0] : await navigator.serial.requestPort());
+            } catch (e) {
+                st.textContent = (e && e.name === 'NotFoundError')
+                    ? 'Bạn chưa chọn cổng — bấm lại, CLICK dòng USB-SERIAL (COMx) rồi bấm "Kết nối".'
+                    : 'Không kết nối được: ' + ((e && e.message) || e);
+            }
         });
     })();
 });
