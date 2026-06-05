@@ -105,12 +105,28 @@
                      data-total="{{ (int) $tongTien }}"
                      data-lookup="{{ route('payment.card-lookup', $order->ma_order) }}">
                     <p class="mb-2 text-xs font-semibold text-[#8B5A2B]">Thẻ thành viên / Đổi điểm</p>
-                    <div class="flex gap-2">
-                        <input type="text" id="loy-q" placeholder="UID thẻ hoặc SĐT khách" autocomplete="off"
-                               class="w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm focus:border-[#8B5A2B] focus:ring-[#8B5A2B]">
-                        <button type="button" id="loy-lookup"
-                                class="shrink-0 rounded-lg bg-[#1A1A1A] px-3 py-2 text-sm font-semibold text-white hover:bg-black">Tra cứu</button>
+                    <div class="relative" id="loy-ac">
+                        <div class="flex gap-2">
+                            <input type="text" id="loy-q" placeholder="Quẹt thẻ / gõ UID hoặc tên/SĐT" autocomplete="off"
+                                   class="w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm focus:border-[#8B5A2B] focus:ring-[#8B5A2B]">
+                            <button type="button" id="loy-connect" title="Kết nối đầu đọc RFID"
+                                    class="shrink-0 rounded-lg border border-[#8B5A2B]/30 bg-[#FFF7E8] px-2.5 py-2 text-[11px] font-semibold text-[#8B5A2B] hover:bg-[#FCEFD6]">Đầu đọc</button>
+                            <button type="button" id="loy-lookup"
+                                    class="shrink-0 rounded-lg bg-[#1A1A1A] px-3 py-2 text-sm font-semibold text-white hover:bg-black">Tra cứu</button>
+                        </div>
+                        <div id="loy-list" class="absolute z-20 mt-1 hidden max-h-52 w-full overflow-auto rounded-lg border border-[#522C25]/15 bg-white shadow-lg">
+                            @foreach(($cardHolders ?? []) as $h)
+                                <button type="button" class="loy-item block w-full border-b border-[#522C25]/5 px-3 py-2 text-left text-sm hover:bg-[#FFF7E8]"
+                                        data-uid="{{ $h['uid'] }}"
+                                        data-search="{{ \Illuminate\Support\Str::lower(($h['ten_kh'] ?? '') . ' ' . ($h['sdt'] ?? '') . ' ' . ($h['uid'] ?? '')) }}">
+                                    <span class="font-medium">{{ $h['ten_kh'] }}</span>
+                                    <span class="text-[#522C25]/55"> · {{ $h['sdt_che'] }}</span>
+                                    <span class="font-mono text-[11px] text-[#522C25]/45"> · {{ $h['ma_the'] }}</span>
+                                </button>
+                            @endforeach
+                        </div>
                     </div>
+                    <p id="loy-rfid-status" class="mt-1 text-[11px] text-[#522C25]/55"></p>
                     <p id="loy-msg" class="mt-1 text-[11px] text-[#BB0011]"></p>
 
                     <div id="loy-info" class="mt-2 hidden rounded-lg bg-white p-3 ring-1 ring-[#522C25]/10">
@@ -315,6 +331,63 @@ document.addEventListener('DOMContentLoaded', () => {
         $('loy-uudai').classList.add('hidden');
         if (ckInput) { ckInput.value = 0; ckInput.dispatchEvent(new Event('input')); }   // bỏ ưu đãi hạng
     });
+
+    // ── Autocomplete thẻ đang hoạt động (gõ tên/SĐT/UID → chọn → tra cứu) ──
+    (() => {
+        const wrap = $('loy-ac'), list = $('loy-list'), input = $('loy-q');
+        if (!wrap || !list) return;
+        const its = Array.from(list.querySelectorAll('.loy-item'));
+        const filt = () => {
+            const s = input.value.trim().toLowerCase();
+            its.forEach((it) => { it.style.display = (s === '' || (it.dataset.search || '').includes(s)) ? '' : 'none'; });
+        };
+        input.addEventListener('input', () => { list.classList.remove('hidden'); filt(); });
+        input.addEventListener('focus', () => { list.classList.remove('hidden'); filt(); });
+        its.forEach((it) => it.addEventListener('click', () => { input.value = it.dataset.uid; list.classList.add('hidden'); lookup(); }));
+        document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) list.classList.add('hidden'); });
+    })();
+
+    // ── Đầu đọc RFID: tự kết nối khi cắm USB → quẹt thẻ là tự tra cứu ──
+    (() => {
+        const btn = $('loy-connect'), st = $('loy-rfid-status'), q = $('loy-q');
+        if (!btn) return;
+        if (!('serial' in navigator)) {
+            btn.disabled = true; btn.classList.add('opacity-50', 'cursor-not-allowed');
+            st.textContent = 'Trình duyệt không hỗ trợ Web Serial (Chrome/Edge).';
+            return;
+        }
+        let reading = false;
+        async function start(port) {
+            if (reading) return;
+            try { await port.open({ baudRate: 9600 }); } catch (e) { /* có thể đã mở */ }
+            if (!port.readable) return;
+            reading = true; btn.textContent = 'Đầu đọc ●'; st.textContent = 'Đầu đọc sẵn sàng — quẹt thẻ...';
+            try {
+                const dec = new TextDecoderStream();
+                port.readable.pipeTo(dec.writable).catch(() => {});
+                const rd = dec.readable.getReader();
+                let buf = '';
+                while (true) {
+                    const { value, done } = await rd.read();
+                    if (done) break;
+                    buf += value;
+                    let i;
+                    while ((i = buf.indexOf('\n')) >= 0) {
+                        const line = buf.slice(0, i).trim();
+                        buf = buf.slice(i + 1);
+                        if (line.startsWith('UID:')) { q.value = line.slice(4).trim().toUpperCase(); $('loy-list').classList.add('hidden'); lookup(); }
+                    }
+                }
+            } catch (e) { st.textContent = 'Mất kết nối đầu đọc.'; }
+            reading = false; btn.textContent = 'Đầu đọc';
+        }
+        navigator.serial.getPorts().then((p) => { if (p.length && !reading) start(p[0]); }).catch(() => {});
+        navigator.serial.addEventListener('connect', (e) => { if (!reading) start(e.target); });
+        btn.addEventListener('click', async () => {
+            try { start(await navigator.serial.requestPort()); }
+            catch (e) { st.textContent = 'Không kết nối được: ' + e.message + ' (đóng Serial Monitor/bridge nếu đang giữ cổng).'; }
+        });
+    })();
 });
 </script>
 @endsection

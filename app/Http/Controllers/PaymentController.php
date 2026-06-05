@@ -39,7 +39,10 @@ class PaymentController extends Controller
 
         $vnpayReady = $this->vnpay->configured();
 
-        return view('staff.payment', compact('order', 'tongTien', 'mergeTargets', 'vnpayReady'));
+        // Danh sách thẻ đang hoạt động cho autocomplete + tra cứu nhanh ở POS.
+        $cardHolders = app(\App\Services\LoyaltyService::class)->activeCardHolders();
+
+        return view('staff.payment', compact('order', 'tongTien', 'mergeTargets', 'vnpayReady', 'cardHolders'));
     }
 
     public function process(Request $request, string $maOrder)

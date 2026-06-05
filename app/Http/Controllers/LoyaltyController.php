@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CauHinhHang;
 use App\Models\GiaoDichDiem;
 use App\Models\TheThanhVien;
 use App\Services\LoyaltyService;
@@ -115,5 +116,61 @@ class LoyaltyController extends Controller
         $this->loyalty->adjust($card, (int) $request->input('so_diem'), (string) $request->input('ly_do'));
 
         return back()->with('success', 'Đã điều chỉnh điểm cho thẻ ' . $card->ma_the . '.');
+    }
+
+    /** Trang cấu hình HẠNG hội viên (hệ số tích điểm + ưu đãi giảm). */
+    public function tiersConfig()
+    {
+        try {
+            $tiers = CauHinhHang::orderBy('nguong')->get();
+        } catch (\Throwable $e) {
+            $tiers = collect();
+        }
+
+        // Fallback hiển thị từ config nếu bảng chưa có/trống (chưa migrate).
+        $chuaMigrate = $tiers->isEmpty();
+        if ($chuaMigrate) {
+            $tiers = collect(config('loyalty.tiers', []))
+                ->map(fn ($c, $ma) => (object) array_merge(['ma_hang' => $ma], $c))
+                ->values();
+        }
+
+        return view('staff.loyalty.tiers', compact('tiers', 'chuaMigrate'));
+    }
+
+    /** Lưu cấu hình hạng (sửa hệ số / loại giảm / mức giảm / ngưỡng / nhãn). */
+    public function tiersUpdate(Request $request)
+    {
+        $data = $request->validate([
+            'hang'                  => 'required|array',
+            'hang.*.nhan'           => 'required|string|max:50',
+            'hang.*.nguong'         => 'required|integer|min:0',
+            'hang.*.he_so'          => 'required|numeric|min:0|max:99',
+            'hang.*.giam_loai'      => 'required|in:phan_tram,tien',
+            'hang.*.giam_gia_tri'   => 'required|numeric|min:0',
+        ]);
+
+        try {
+            foreach ($data['hang'] as $maHang => $row) {
+                $giaTri = (float) $row['giam_gia_tri'];
+                if ($row['giam_loai'] === 'phan_tram') {
+                    $giaTri = min(100, $giaTri);   // % không quá 100
+                }
+                CauHinhHang::updateOrCreate(
+                    ['ma_hang' => $maHang],
+                    [
+                        'nhan'         => $row['nhan'],
+                        'nguong'       => (int) $row['nguong'],
+                        'he_so'        => (float) $row['he_so'],
+                        'giam_loai'    => $row['giam_loai'],
+                        'giam_gia_tri' => $giaTri,
+                    ]
+                );
+            }
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Chưa lưu được — hãy chạy "php artisan migrate" để tạo bảng CAU_HINH_HANG.');
+        }
+
+        return back()->with('success', 'Đã lưu cấu hình hạng hội viên.');
     }
 }

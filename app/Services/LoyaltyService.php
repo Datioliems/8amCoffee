@@ -208,6 +208,33 @@ class LoyaltyService
     }
 
     /**
+     * Danh sách thẻ ĐANG HOẠT ĐỘNG (cho autocomplete ở POS — tra theo tên/SĐT/UID).
+     *
+     * @return array<int,array{ma_the:string, uid:string, ten_kh:string, sdt:string, sdt_che:string}>
+     */
+    public function activeCardHolders(int $limit = 300): array
+    {
+        $out = [];
+        $cards = TheThanhVien::with('khachHang')
+            ->where('trang_thai', 'hoat_dong')
+            ->orderByDesc('tao_luc')
+            ->limit($limit)
+            ->get();
+
+        foreach ($cards as $c) {
+            $sdt = (string) ($c->khachHang->sdt ?? '');   // cast tự giải mã
+            $out[] = [
+                'ma_the'  => $c->ma_the,
+                'uid'     => $c->uid_rfid,
+                'ten_kh'  => (string) ($c->khachHang->ten_kh ?? $c->ma_kh ?? $c->ma_the),
+                'sdt'     => preg_replace('/\D/', '', $sdt),  // để TÌM
+                'sdt_che' => $this->maskPhone($sdt),          // để hiển thị
+            ];
+        }
+        return $out;
+    }
+
+    /**
      * TÍCH ĐIỂM cho một hóa đơn vừa thanh toán (gọi từ PaymentService).
      * Tìm thẻ đang hoạt động của khách; nếu không có thẻ → bỏ qua (trả null).
      */
@@ -367,12 +394,41 @@ class LoyaltyService
         return (int) GiaoDichDiem::where('ma_the', $maThe)->sum('so_diem');
     }
 
+    /**
+     * Nguồn cấu hình HẠNG: ưu tiên bảng CAU_HINH_HANG (sửa qua web),
+     * fallback config('loyalty.tiers') nếu bảng trống/chưa migrate.
+     *
+     * @return array<string,array{nhan:string,nguong:int,he_so:float,giam_loai:string,giam_gia_tri:float}>
+     */
+    public function tiers(): array
+    {
+        static $cache = null;
+        if ($cache !== null) {
+            return $cache;
+        }
+        try {
+            $rows = \App\Models\CauHinhHang::orderBy('nguong')->get();
+            if ($rows->isNotEmpty()) {
+                return $cache = $rows->mapWithKeys(fn ($r) => [$r->ma_hang => [
+                    'nhan'         => $r->nhan,
+                    'nguong'       => (int) $r->nguong,
+                    'he_so'        => (float) $r->he_so,
+                    'giam_loai'    => $r->giam_loai,
+                    'giam_gia_tri' => (float) $r->giam_gia_tri,
+                ]])->all();
+            }
+        } catch (\Throwable $e) {
+            // bảng chưa tồn tại → dùng config
+        }
+        return $cache = (array) config('loyalty.tiers', []);
+    }
+
     /** Xếp hạng thẻ theo tổng điểm tích lũy (hạng có ngưỡng cao nhất mà ≤ tổng điểm). */
     public function tierForPoints(int $tongDiem): string
     {
         $best = 'thuong';
         $bestNguong = -1;
-        foreach ((array) config('loyalty.tiers', []) as $ma => $cfg) {
+        foreach ($this->tiers() as $ma => $cfg) {
             $nguong = (int) ($cfg['nguong'] ?? 0);
             if ($tongDiem >= $nguong && $nguong >= $bestNguong) {
                 $best = $ma;
@@ -385,7 +441,7 @@ class LoyaltyService
     /** Cấu hình một hạng (fallback hạng 'thuong'). */
     public function tierConfig(string $tier): array
     {
-        $tiers = (array) config('loyalty.tiers', []);
+        $tiers = $this->tiers();
         return $tiers[$tier]
             ?? $tiers['thuong']
             ?? ['nhan' => 'Thường', 'nguong' => 0, 'he_so' => 1.0, 'giam_loai' => 'phan_tram', 'giam_gia_tri' => 0];
