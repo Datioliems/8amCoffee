@@ -28,6 +28,7 @@ return [
         // Quản trị
         'staff.manage'     => 'Quản lý nhân viên & phân quyền',
         'scanlog.view'     => 'Xem log quét QR',
+        'anomaly.view'     => 'Xem cảnh báo QR bất thường',
         'auditlog.view'    => 'Xem nhật ký đăng nhập',
         'emaillog.view'    => 'Xem nhật ký email',
         'branch.manage'    => 'Quản lý chi nhánh (chủ chuỗi)',
@@ -40,7 +41,7 @@ return [
         'admin' => [
             'dashboard.view', 'orders.manage', 'payment.process', 'floorplan.view', 'ban.manage',
             'inventory.manage', 'menu.manage', 'customer.view', 'loyalty.manage', 'analytics.view',
-            'staff.manage', 'scanlog.view',
+            'staff.manage', 'scanlog.view', 'anomaly.view',
         ],
 
         // Nhân viên: vận hành cơ bản (giữ đúng quyền hiện có trước khi thêm phân quyền).

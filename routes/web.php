@@ -16,6 +16,7 @@ use App\Http\Controllers\NguyenLieuController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ChiNhanhController;
 use App\Http\Controllers\NhanVienController;
+use App\Http\Controllers\ScanAnomalyAlertController;
 
 Route::get('/', fn() => redirect()->route('login'));
 
@@ -111,6 +112,12 @@ Route::middleware(['auth.staff'])->group(function () {
 
     // ── LOG QUÉT QR ──────────────────────────────────────────
     Route::middleware('perm:scanlog.view')->get('/scan-log', [QrController::class, 'scanLog'])->name('scanlog.index');
+
+    // ── CẢNH BÁO QR BẤT THƯỜNG (ML anomaly detection) ────────
+    Route::middleware('perm:anomaly.view')->group(function () {
+        Route::get('/scan-anomaly-alerts',                [ScanAnomalyAlertController::class, 'index']   )->name('scan-anomaly.index');
+        Route::post('/scan-anomaly-alerts/{id}/feedback', [ScanAnomalyAlertController::class, 'feedback'])->name('scan-anomaly.feedback');
+    });
 
     // ── NHẬT KÝ ĐĂNG NHẬP / AN TOÀN ──────────────────────────
     Route::middleware('perm:auditlog.view')->get('/nhat-ky-dang-nhap', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('auditlog.index');
