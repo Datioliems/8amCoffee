@@ -107,8 +107,9 @@ Route::middleware(['auth.staff'])->group(function () {
     Route::middleware('perm:loyalty.manage')->prefix('the-thanh-vien')->name('loyalty.')->group(function () {
         Route::get('/',                     [\App\Http\Controllers\LoyaltyController::class, 'index']       )->name('index');
         Route::post('/phat-the',            [\App\Http\Controllers\LoyaltyController::class, 'issue']       )->name('issue');
-        Route::get('/cau-hinh-hang',        [\App\Http\Controllers\LoyaltyController::class, 'tiersConfig'])->name('tiers');
-        Route::post('/cau-hinh-hang',       [\App\Http\Controllers\LoyaltyController::class, 'tiersUpdate'])->name('tiers.update');
+        Route::get('/cau-hinh-hang',              [\App\Http\Controllers\LoyaltyController::class, 'tiersConfig'] )->name('tiers');
+        Route::post('/cau-hinh-hang',             [\App\Http\Controllers\LoyaltyController::class, 'tiersUpdate'] )->name('tiers.update');
+        Route::delete('/cau-hinh-hang/{ma_hang}', [\App\Http\Controllers\LoyaltyController::class, 'tiersDelete'] )->name('tiers.delete');
         Route::get('/{ma_the}',             [\App\Http\Controllers\LoyaltyController::class, 'show']        )->name('show');
         Route::post('/{ma_the}/trang-thai', [\App\Http\Controllers\LoyaltyController::class, 'updateStatus'])->name('status');
         Route::post('/{ma_the}/dieu-chinh', [\App\Http\Controllers\LoyaltyController::class, 'adjust']      )->name('adjust');

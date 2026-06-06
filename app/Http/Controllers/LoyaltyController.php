@@ -138,23 +138,33 @@ class LoyaltyController extends Controller
         return view('staff.loyalty.tiers', compact('tiers', 'chuaMigrate'));
     }
 
-    /** Lưu cấu hình hạng (sửa hệ số / loại giảm / mức giảm / ngưỡng / nhãn). */
+    /** Lưu cấu hình hạng (sửa + thêm mới). */
     public function tiersUpdate(Request $request)
     {
         $data = $request->validate([
-            'hang'                  => 'required|array',
-            'hang.*.nhan'           => 'required|string|max:50',
-            'hang.*.nguong'         => 'required|integer|min:0',
-            'hang.*.he_so'          => 'required|numeric|min:0|max:99',
-            'hang.*.giam_loai'      => 'required|in:phan_tram,tien',
-            'hang.*.giam_gia_tri'   => 'required|numeric|min:0',
+            // Hạng hiện có: hang[ma_hang][field]
+            'hang'                    => 'nullable|array',
+            'hang.*.nhan'             => 'required|string|max:50',
+            'hang.*.nguong'           => 'required|integer|min:0',
+            'hang.*.he_so'            => 'required|numeric|min:0|max:99',
+            'hang.*.giam_loai'        => 'required|in:phan_tram,tien',
+            'hang.*.giam_gia_tri'     => 'required|numeric|min:0',
+            // Hạng mới: hang_moi[n][field]
+            'hang_moi'                => 'nullable|array',
+            'hang_moi.*.ma_hang'      => ['required', 'string', 'max:20', 'regex:/^[a-z][a-z0-9_]*$/'],
+            'hang_moi.*.nhan'         => 'required|string|max:50',
+            'hang_moi.*.nguong'       => 'required|integer|min:0',
+            'hang_moi.*.he_so'        => 'required|numeric|min:0|max:99',
+            'hang_moi.*.giam_loai'    => 'required|in:phan_tram,tien',
+            'hang_moi.*.giam_gia_tri' => 'required|numeric|min:0',
         ]);
 
         try {
-            foreach ($data['hang'] as $maHang => $row) {
+            // 1. Cập nhật hạng hiện có
+            foreach ($data['hang'] ?? [] as $maHang => $row) {
                 $giaTri = (float) $row['giam_gia_tri'];
                 if ($row['giam_loai'] === 'phan_tram') {
-                    $giaTri = min(100, $giaTri);   // % không quá 100
+                    $giaTri = min(100, $giaTri);
                 }
                 CauHinhHang::updateOrCreate(
                     ['ma_hang' => $maHang],
@@ -167,10 +177,56 @@ class LoyaltyController extends Controller
                     ]
                 );
             }
+
+            // 2. Tạo hạng mới
+            $newRows   = $data['hang_moi'] ?? [];
+            $newMaCodes = array_column($newRows, 'ma_hang');
+            if (count($newMaCodes) !== count(array_unique($newMaCodes))) {
+                return back()->withInput()->with('error', 'Có mã hạng trùng nhau trong danh sách hạng mới.');
+            }
+            $maxThuTu = (int) CauHinhHang::max('thu_tu');
+            foreach ($newRows as $row) {
+                $maHang = $row['ma_hang'];
+                if (CauHinhHang::where('ma_hang', $maHang)->exists()) {
+                    return back()->withInput()->with('error', "Mã hạng \"{$maHang}\" đã tồn tại. Chọn mã khác.");
+                }
+                $giaTri = (float) $row['giam_gia_tri'];
+                if ($row['giam_loai'] === 'phan_tram') {
+                    $giaTri = min(100, $giaTri);
+                }
+                CauHinhHang::create([
+                    'ma_hang'      => $maHang,
+                    'nhan'         => $row['nhan'],
+                    'nguong'       => (int) $row['nguong'],
+                    'he_so'        => (float) $row['he_so'],
+                    'giam_loai'    => $row['giam_loai'],
+                    'giam_gia_tri' => $giaTri,
+                    'thu_tu'       => ++$maxThuTu,
+                ]);
+            }
         } catch (\Throwable $e) {
             return back()->with('error', 'Chưa lưu được — hãy chạy "php artisan migrate" để tạo bảng CAU_HINH_HANG.');
         }
 
         return back()->with('success', 'Đã lưu cấu hình hạng hội viên.');
+    }
+
+    /** Xóa một hạng hội viên. */
+    public function tiersDelete(string $maHang)
+    {
+        try {
+            if (CauHinhHang::count() <= 1) {
+                return back()->with('error', 'Phải có ít nhất 1 hạng hội viên.');
+            }
+            $hang  = CauHinhHang::findOrFail($maHang);
+            $soThe = \App\Models\TheThanhVien::where('hang_the', $maHang)->count();
+            if ($soThe > 0) {
+                return back()->with('error', "Hạng \"{$hang->nhan}\" đang có {$soThe} thẻ. Chuyển thẻ sang hạng khác trước khi xóa.");
+            }
+            $hang->delete();
+        } catch (\Throwable $e) {
+            return back()->with('error', 'Không xóa được: ' . $e->getMessage());
+        }
+        return back()->with('success', "Đã xóa hạng \"{$maHang}\".");
     }
 }

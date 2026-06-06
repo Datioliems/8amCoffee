@@ -426,24 +426,26 @@ class LoyaltyService
     /** Xếp hạng thẻ theo tổng điểm tích lũy (hạng có ngưỡng cao nhất mà ≤ tổng điểm). */
     public function tierForPoints(int $tongDiem): string
     {
-        $best = 'thuong';
+        $tiers = $this->tiers();
+        // Mặc định = hạng có ngưỡng thấp nhất (thứ nhất trong mảng đã sắp xếp theo nguong)
+        $best       = (string) array_key_first($tiers) ?: 'thuong';
         $bestNguong = -1;
-        foreach ($this->tiers() as $ma => $cfg) {
+        foreach ($tiers as $ma => $cfg) {
             $nguong = (int) ($cfg['nguong'] ?? 0);
             if ($tongDiem >= $nguong && $nguong >= $bestNguong) {
-                $best = $ma;
+                $best       = $ma;
                 $bestNguong = $nguong;
             }
         }
         return $best;
     }
 
-    /** Cấu hình một hạng (fallback hạng 'thuong'). */
+    /** Cấu hình một hạng (fallback = hạng đầu tiên / ngưỡng thấp nhất). */
     public function tierConfig(string $tier): array
     {
         $tiers = $this->tiers();
         return $tiers[$tier]
-            ?? $tiers['thuong']
+            ?? (array_values($tiers)[0] ?? null)
             ?? ['nhan' => 'Thường', 'nguong' => 0, 'he_so' => 1.0, 'giam_loai' => 'phan_tram', 'giam_gia_tri' => 0];
     }
 
