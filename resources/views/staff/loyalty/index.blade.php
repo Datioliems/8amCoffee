@@ -48,15 +48,20 @@
 
             {{-- UID + đọc thẻ tự động qua đầu đọc (Web Serial) --}}
             <label class="mb-1 block text-[11px] font-semibold text-[#522C25]/55">UID thẻ (hex)</label>
-            <div class="flex gap-2">
-                <input type="text" name="uid" id="uid-input" required placeholder="Quẹt thẻ hoặc gõ UID"
-                       class="w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm font-mono transition">
-                <button type="button" id="rfid-connect"
-                        class="shrink-0 rounded-lg border border-[#8B5A2B]/30 bg-[#FFF7E8] px-3 py-2 text-xs font-semibold text-[#8B5A2B] hover:bg-[#FCEFD6]">
+            <div class=”flex gap-2”>
+                <input type=”text” name=”uid” id=”uid-input” required placeholder=”Quẹt thẻ hoặc gõ UID”
+                       class=”w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm font-mono transition”>
+                {{-- Nút NFC: hiện trên Android Chrome, ẩn tự động nếu không hỗ trợ --}}
+                <button type=”button” id=”nfc-scan”
+                        class=”shrink-0 rounded-lg border border-emerald-600/30 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 hidden”>
+                    📱 NFC
+                </button>
+                <button type=”button” id=”rfid-connect”
+                        class=”shrink-0 rounded-lg border border-[#8B5A2B]/30 bg-[#FFF7E8] px-3 py-2 text-xs font-semibold text-[#8B5A2B] hover:bg-[#FCEFD6]”>
                     Kết nối đầu đọc
                 </button>
             </div>
-            <p id="rfid-status" class="mt-1 text-[11px] text-[#522C25]/55">Bấm “Kết nối đầu đọc” rồi quẹt thẻ — UID tự điền (Chrome/Edge, đầu đọc cắm USB).</p>
+            <p id=”rfid-status” class=”mt-1 text-[11px] text-[#522C25]/55”>Bấm “Kết nối đầu đọc” rồi quẹt thẻ — UID tự điền (Chrome/Edge, đầu đọc cắm USB).</p>
 
             {{-- Chọn khách đủ điều kiện — gõ tên/SĐT, hiện gợi ý (autocomplete) --}}
             <label class="mt-3 mb-1 block text-[11px] font-semibold text-[#522C25]/55">Khách đủ điều kiện (gõ tên hoặc SĐT)</label>
@@ -166,11 +171,84 @@
 // ── Đầu đọc RFID (Web Serial, tự kết nối khi cắm USB) + Autocomplete khách ──
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ===== A) ĐẦU ĐỌC RFID =====
+    const uidInput  = document.getElementById('uid-input');
+    const statusEl  = document.getElementById('rfid-status');
+
+    /** Điền UID vào ô input + hiệu ứng xanh lá */
+    const setUid = (uid) => {
+        uidInput.value = uid;
+        uidInput.classList.add('ring-2', 'ring-emerald-400');
+        statusEl.textContent = 'Đã đọc UID ' + uid + ' ✓ — chọn khách rồi bấm Phát thẻ.';
+        setTimeout(() => uidInput.classList.remove('ring-2', 'ring-emerald-400'), 1500);
+    };
+
+    // ===== A) WEB NFC (Android Chrome) =====
+    (() => {
+        const nfcBtn = document.getElementById('nfc-scan');
+        if (!nfcBtn) return;
+
+        if (!('NDEFReader' in window)) {
+            // Trình duyệt không hỗ trợ Web NFC → ẩn nút, không báo lỗi
+            return;
+        }
+
+        // Hiện nút vì trình duyệt hỗ trợ NFC
+        nfcBtn.classList.remove('hidden');
+
+        let nfcReader = null;
+        let scanning  = false;
+
+        nfcBtn.addEventListener('click', async () => {
+            if (scanning) {
+                // Bấm lần 2 → dừng quét
+                nfcReader = null;
+                scanning  = false;
+                nfcBtn.textContent   = '📱 NFC';
+                statusEl.textContent = 'Đã dừng quét NFC.';
+                return;
+            }
+
+            try {
+                nfcReader = new NDEFReader();
+                await nfcReader.scan();
+                scanning             = true;
+                nfcBtn.textContent   = '⏹ Dừng NFC';
+                statusEl.textContent = 'Đang chờ thẻ NFC — chạm thẻ vào lưng điện thoại...';
+
+                nfcReader.onreading = (event) => {
+                    // serialNumber trả về dạng "04:a3:b2:c1" → chuẩn hoá thành "04A3B2C1"
+                    const uid = (event.serialNumber || '')
+                        .replace(/:/g, '')
+                        .toUpperCase();
+                    if (uid) {
+                        setUid(uid);
+                        // Tự dừng sau khi đọc được 1 thẻ
+                        scanning           = false;
+                        nfcBtn.textContent = '📱 NFC';
+                    }
+                };
+
+                nfcReader.onreadingerror = () => {
+                    statusEl.textContent = 'Không đọc được thẻ — thử chạm lại.';
+                };
+
+            } catch (e) {
+                scanning           = false;
+                nfcBtn.textContent = '📱 NFC';
+                if (e.name === 'NotAllowedError') {
+                    statusEl.textContent = 'Bạn cần cho phép quyền NFC — kiểm tra cài đặt trình duyệt.';
+                } else if (e.name === 'NotSupportedError') {
+                    statusEl.textContent = 'Thiết bị không có NFC hoặc NFC chưa bật.';
+                } else {
+                    statusEl.textContent = 'Lỗi NFC: ' + e.message;
+                }
+            }
+        });
+    })();
+
+    // ===== B) ĐẦU ĐỌC RFID USB (Web Serial) =====
     (() => {
         const btn = document.getElementById('rfid-connect');
-        const statusEl = document.getElementById('rfid-status');
-        const uidInput = document.getElementById('uid-input');
         if (!btn) return;
 
         if (!('serial' in navigator)) {
@@ -181,13 +259,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         let reading = false;
-
-        const setUid = (uid) => {
-            uidInput.value = uid;
-            uidInput.classList.add('ring-2', 'ring-emerald-400');
-            statusEl.textContent = 'Đã đọc UID ' + uid + ' ✓ — chọn khách rồi bấm Phát thẻ.';
-            setTimeout(() => uidInput.classList.remove('ring-2', 'ring-emerald-400'), 1500);
-        };
 
         async function startReading(port) {
             if (reading) return;
