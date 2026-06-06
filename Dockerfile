@@ -16,10 +16,15 @@ FROM php:8.2-apache
 
 # Extension cần cho Laravel + MySQL + GD (ext-gd cho simple-qrcode)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libzip-dev libpng-dev libjpeg-dev libfreetype6-dev unzip git \
+        libzip-dev libpng-dev libjpeg-dev libfreetype6-dev unzip git cron \
  && docker-php-ext-configure gd --with-freetype --with-jpeg \
  && docker-php-ext-install pdo_mysql bcmath zip gd \
  && rm -rf /var/lib/apt/lists/*
+
+# Crontab cho Laravel scheduler — chạy mỗi phút, log vào /var/log/laravel-cron.log
+RUN echo "* * * * * root cd /var/www/html && php artisan schedule:run >> /var/log/laravel-cron.log 2>&1" \
+    > /etc/cron.d/laravel-scheduler \
+ && chmod 0644 /etc/cron.d/laravel-scheduler
 
 # Apache: chỉ dùng MỘT MPM (prefork) + bật rewrite.
 # Xóa thẳng symlink event/worker rồi bật prefork — tránh "More than one MPM loaded".

@@ -58,4 +58,8 @@ php artisan view:cache   || true
 chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache 2>/dev/null || true
 chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache 2>/dev/null || true
 
+# Khởi động cron daemon (chạy Laravel scheduler mỗi phút: accounts:purge-unconfirmed, v.v.)
+service cron start || cron || true
+echo ">> Cron daemon started (Laravel scheduler active)"
+
 exec apache2-foreground
