@@ -137,7 +137,7 @@ class OrderService
                 'ma_order'     => $maOrder,
                 'ma_ban'       => $maBan,
                 'ma_kh'        => null,
-                'ten_khach'    => $tenKh ?: null,
+                'ten_khach'    => $tenKh ?: 'Khách vãng lai',
                 'sdt_khach'    => $sdtKh,
                 'ma_chi_nhanh' => $maChiNhanh,
                 'trang_thai'   => 'cho_xac_nhan',
@@ -178,7 +178,7 @@ class OrderService
 
             $changes = [];
             if ($hinhThuc !== null) $changes['hinh_thuc'] = $hinhThuc === 'mang_ve' ? 'mang_ve' : 'tai_ban';
-            if ($tenKh !== null)    $changes['ten_khach'] = $tenKh ?: $order->ten_khach;
+            if ($tenKh !== null)    $changes['ten_khach'] = $tenKh ?: 'Khách vãng lai';
             if ($sdtKh !== null)    $changes['sdt_khach'] = $sdtKh ?: $order->sdt_khach;
             if ($changes) $order->update($changes);
 
