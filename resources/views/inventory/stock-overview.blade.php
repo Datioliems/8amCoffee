@@ -14,9 +14,15 @@
                 <p class="mt-1 text-sm text-[#522C25]/60">Theo dõi số lượng, tìm kiếm và lọc trạng thái nguyên liệu ngay tại đây.</p>
             </div>
             <div class="flex flex-wrap gap-2">
+                @if(in_array(session('chuc_vu'), ['admin', 'superadmin']))
                 <a href="{{ route('inventory.materials.create') }}" class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600">Thêm nguyên liệu</a>
+                @endif
+                @perm('import.create')
                 <a href="{{ route('inventory.import.create') }}" class="rounded-xl bg-[#1A1A1A] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#522C25]">Tạo phiếu nhập</a>
+                @endperm
+                @perm('stockcheck.create')
                 <a href="{{ route('inventory.stockcheck.create') }}" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#522C25] ring-1 ring-[#522C25]/15 transition hover:bg-[#FAF7F2]">Kiểm kê</a>
+                @endperm
                 <a href="{{ route('inventory.import.index') }}" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#522C25] ring-1 ring-[#522C25]/15 transition hover:bg-[#FAF7F2]">Danh sách phiếu nhập</a>
                 <a href="{{ route('inventory.stockcheck.index') }}" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#522C25] ring-1 ring-[#522C25]/15 transition hover:bg-[#FAF7F2]">Danh sách kiểm kê</a>
             </div>
@@ -111,11 +117,15 @@
                             <td class="px-5 py-3 text-right">
                                 <div class="flex items-center justify-end gap-3">
                                     @if($status === 'Hết hàng')
+                                        @perm('import.create')
                                         <a href="{{ route('inventory.import.create', ['nl' => $material->ma_nl]) }}"
                                            class="text-sm font-semibold text-emerald-600 hover:underline">Nhập</a>
+                                        @endperm
                                     @endif
+                                    @if(in_array(session('chuc_vu'), ['admin', 'superadmin']))
                                     <a href="{{ route('inventory.materials.edit', $material->ma_nl) }}"
                                        class="text-sm font-semibold text-amber-600 hover:underline">Sửa</a>
+                                    @endif
                                 </div>
                             </td>
                         </tr>

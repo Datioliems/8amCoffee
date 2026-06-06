@@ -68,7 +68,7 @@ class NguyenLieuController extends Controller
         NhatKyHanhDong::ghi('tao_nguyen_lieu', 'nguyen_lieu', $validated['ma_nl'],
             "Thêm nguyên liệu {$validated['ten_nl']} ({$validated['don_vi']})");
 
-        return redirect()->route('inventory.materials.index')
+        return redirect()->route('inventory.index')
             ->with('success', 'Đã thêm nguyên liệu: '.$validated['ten_nl']);
     }
 
@@ -117,6 +117,11 @@ class NguyenLieuController extends Controller
 
     public function destroy(string $material)
     {
+        // Chỉ admin / superadmin mới được xóa nguyên liệu.
+        if (! in_array(session('chuc_vu'), ['admin', 'superadmin'])) {
+            abort(403, 'Chỉ quản lý chi nhánh mới có quyền xóa nguyên liệu.');
+        }
+
         $nguyenLieu = NguyenLieu::findOrFail($material);
 
         $referenceTables = [
