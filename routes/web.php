@@ -193,17 +193,44 @@ Route::middleware(['auth.staff'])->group(function () {
     });
 
     Route::middleware('perm:inventory.manage')->prefix('inventory')->name('inventory.')->group(function () {
+        // Tổng quan & cảnh báo tồn kho
         Route::get('/',      [InventoryController::class, 'index']   )->name('index');
         Route::get('/alert', [InventoryController::class, 'lowStock'])->name('alert');
-        Route::resource('materials',  NguyenLieuController::class)->except(['show']);
-        Route::resource('import', ImportController::class)->only(['index', 'create', 'store', 'show']);
-        Route::put('/import/{id}/approve',     [ImportController::class,    'approve'])->name('import.approve');
-        Route::put('/import/{id}/cancel',      [ImportController::class,    'cancel'] )->name('import.cancel');
+
+        // Nguyên liệu & nhà cung cấp (vẫn dùng inventory.manage)
+        Route::resource('materials', NguyenLieuController::class)->except(['show']);
         Route::post('/supplier/quick', [SupplierController::class, 'quickStore'])->name('supplier.quick');
         Route::resource('supplier',   SupplierController::class)->except(['show']);
-        Route::resource('stockcheck', StockCheckController::class)->only(['index', 'create', 'store', 'show']);
-        Route::put('/stockcheck/{id}/confirm', [StockCheckController::class,'confirm'])->name('stockcheck.confirm');
-        Route::put('/stockcheck/{id}/cancel',  [StockCheckController::class,'cancel'] )->name('stockcheck.cancel');
+
+        // ── Phiếu nhập kho ──────────────────────────────────────────────────
+        // Xem danh sách & chi tiết: chỉ cần inventory.manage
+        Route::get('/import',      [ImportController::class, 'index'])->name('import.index');
+        Route::get('/import/{id}', [ImportController::class, 'show'] )->name('import.show');
+        // Lập phiếu: cần import.create (quản lý chi nhánh, hoặc NV được cấp thêm)
+        Route::middleware('perm:import.create')->group(function () {
+            Route::get('/import/create', [ImportController::class, 'create'])->name('import.create');
+            Route::post('/import',       [ImportController::class, 'store'] )->name('import.store');
+        });
+        // Duyệt / hủy phiếu: cần import.approve (chỉ quản lý chi nhánh mặc định)
+        Route::middleware('perm:import.approve')->group(function () {
+            Route::put('/import/{id}/approve', [ImportController::class, 'approve'])->name('import.approve');
+            Route::put('/import/{id}/cancel',  [ImportController::class, 'cancel'] )->name('import.cancel');
+        });
+
+        // ── Phiếu kiểm kê ───────────────────────────────────────────────────
+        // Xem danh sách & chi tiết: chỉ cần inventory.manage
+        Route::get('/stockcheck',      [StockCheckController::class, 'index'])->name('stockcheck.index');
+        Route::get('/stockcheck/{id}', [StockCheckController::class, 'show'] )->name('stockcheck.show');
+        // Lập phiếu: cần stockcheck.create
+        Route::middleware('perm:stockcheck.create')->group(function () {
+            Route::get('/stockcheck/create', [StockCheckController::class, 'create'])->name('stockcheck.create');
+            Route::post('/stockcheck',       [StockCheckController::class, 'store'] )->name('stockcheck.store');
+        });
+        // Xác nhận / hủy phiếu: cần stockcheck.approve
+        Route::middleware('perm:stockcheck.approve')->group(function () {
+            Route::put('/stockcheck/{id}/confirm', [StockCheckController::class, 'confirm'])->name('stockcheck.confirm');
+            Route::put('/stockcheck/{id}/cancel',  [StockCheckController::class, 'cancel'] )->name('stockcheck.cancel');
+        });
     });
 
     // ── BÁO CÁO DOANH THU (tách riêng, KHÔNG nằm trong inventory) ──

@@ -23,6 +23,7 @@
         </div>
 
         @if($check->trang_thai === 'nhap')
+            @perm('stockcheck.approve')
             <div class="flex gap-2">
                 <form action="{{ route('inventory.stockcheck.confirm', $check->ma_pkk) }}" method="POST">
                     @csrf
@@ -43,6 +44,7 @@
                     </button>
                 </form>
             </div>
+            @endperm
         @endif
     </div>
 

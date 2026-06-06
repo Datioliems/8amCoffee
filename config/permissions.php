@@ -18,8 +18,12 @@ return [
         'floorplan.view'   => 'Xem sơ đồ bàn 3D',
         'ban.manage'       => 'Quản lý bàn & QR',
         // Kho & thực đơn
-        'inventory.manage' => 'Quản lý kho',
-        'menu.manage'      => 'Quản lý thực đơn',
+        'inventory.manage'   => 'Xem tồn kho & nguyên liệu',
+        'import.create'      => 'Lập phiếu nhập kho',
+        'import.approve'     => 'Duyệt / hủy phiếu nhập kho',
+        'stockcheck.create'  => 'Lập phiếu kiểm kê',
+        'stockcheck.approve' => 'Xác nhận / hủy phiếu kiểm kê',
+        'menu.manage'        => 'Quản lý thực đơn',
         // Khách hàng & loyalty
         'customer.view'    => 'Xem khách hàng',
         'loyalty.manage'   => 'Quản lý thẻ thành viên & điểm',
@@ -40,11 +44,14 @@ return [
         // Quản lý chi nhánh: gần như toàn quyền vận hành + quản trị nhân viên chi nhánh.
         'admin' => [
             'dashboard.view', 'orders.manage', 'payment.process', 'floorplan.view', 'ban.manage',
-            'inventory.manage', 'menu.manage', 'customer.view', 'loyalty.manage', 'analytics.view',
+            'inventory.manage', 'import.create', 'import.approve',
+            'stockcheck.create', 'stockcheck.approve',
+            'menu.manage', 'customer.view', 'loyalty.manage', 'analytics.view',
             'staff.manage', 'scanlog.view', 'anomaly.view',
         ],
 
-        // Nhân viên: vận hành cơ bản (giữ đúng quyền hiện có trước khi thêm phân quyền).
+        // Nhân viên: xem kho được, nhưng KHÔNG lập / duyệt phiếu.
+        // Quản lý chi nhánh có thể cấp thêm import.create / stockcheck.create / *.approve qua trang phân quyền.
         'nhan_vien' => [
             'dashboard.view', 'orders.manage', 'payment.process', 'floorplan.view', 'ban.manage',
             'inventory.manage',

@@ -7,10 +7,12 @@
        class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#522C25] ring-1 ring-[#522C25]/10 transition hover:bg-[#FAF7F2]">
         Quay lại Tồn kho
     </a>
+    @perm('import.create')
     <a href="{{ route('inventory.import.create') }}"
        class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600">
         + Tạo phiếu nhập
     </a>
+    @endperm
 </div>
 
 <div class="overflow-hidden rounded-2xl border border-gray-200 bg-white">
@@ -50,6 +52,7 @@
                             </a>
 
                             @if($import->trang_thai === 'cho_duyet')
+                                @perm('import.approve')
                                 <form action="{{ route('inventory.import.approve', $import->ma_pnk) }}" method="POST"
                                       onsubmit="return confirm('Duyệt phiếu nhập {{ $import->ma_pnk }}? Tồn kho sẽ được cập nhật.')">
                                     @csrf
@@ -59,6 +62,7 @@
                                         Duyệt
                                     </button>
                                 </form>
+                                @endperm
                             @endif
                         </div>
                     </td>

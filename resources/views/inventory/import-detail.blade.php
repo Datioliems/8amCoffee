@@ -27,6 +27,7 @@
         </div>
 
         @if($import->trang_thai === 'cho_duyet')
+            @perm('import.approve')
             <div class="flex gap-2">
                 <form action="{{ route('inventory.import.approve', $import->ma_pnk) }}" method="POST">
                     @csrf
@@ -47,6 +48,7 @@
                     </button>
                 </form>
             </div>
+            @endperm
         @endif
     </div>
 

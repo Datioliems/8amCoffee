@@ -10,10 +10,12 @@
            class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#522C25] ring-1 ring-[#522C25]/10 transition hover:bg-[#FAF7F2]">
             Quay lại Tồn kho
         </a>
+        @perm('stockcheck.create')
         <a href="{{ route('inventory.stockcheck.create') }}"
            class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600">
             + Tạo phiếu kiểm kê
         </a>
+        @endperm
     </div>
 
     <div class="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
@@ -48,6 +50,7 @@
                                 Chi tiết
                             </a>
                             @if($check->trang_thai === 'nhap')
+                                @perm('stockcheck.approve')
                                 <form action="{{ route('inventory.stockcheck.confirm', $check->ma_pkk) }}" method="POST" class="inline">
                                     @csrf
                                     @method('PUT')
@@ -66,6 +69,7 @@
                                         Hủy
                                     </button>
                                 </form>
+                                @endperm
                             @endif
                         </td>
                     </tr>
