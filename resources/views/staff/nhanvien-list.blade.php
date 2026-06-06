@@ -185,11 +185,21 @@
                                     <button class="text-xs font-semibold text-[#8B5A2B] hover:underline">Gửi lại email kích hoạt</button>
                                 </form>
                                 @endif
+                                {{-- Tài khoản đã kích hoạt (active): chỉ cho VÔ HIỆU HOÁ, không xoá --}}
+                                @if($a->trang_thai === 'active')
+                                <form method="POST" action="{{ route('nhanvien.deactivate', $a->ma_tai_khoan) }}"
+                                      onsubmit="return confirm('Vô hiệu hoá tài khoản {{ $a->ten_tk }}?\nTài khoản sẽ không thể đăng nhập cho đến khi được kích hoạt lại.')">
+                                    @csrf
+                                    <button class="text-xs font-semibold text-amber-600 hover:underline">Vô hiệu hoá</button>
+                                </form>
+                                @else
+                                {{-- Chờ kích hoạt hoặc đã khoá: cho phép xoá --}}
                                 <form method="POST" action="{{ route('nhanvien.destroy', $a->ma_tai_khoan) }}"
-                                      onsubmit="return confirm('Xóa tài khoản {{ $a->ten_tk }}?');">
+                                      onsubmit="return confirm('Xóa tài khoản {{ $a->ten_tk }}?\nHành động này không thể hoàn tác.')">
                                     @csrf @method('DELETE')
                                     <button class="text-xs font-semibold text-[#BB0011] hover:underline">Xóa tài khoản</button>
                                 </form>
+                                @endif
                             </div>
                         </td>
                     </tr>

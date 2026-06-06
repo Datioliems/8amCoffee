@@ -34,6 +34,11 @@ return Application::configure(basePath: dirname(__DIR__))
             if ($request->is('logout') || str_contains((string) $request->path(), 'logout')) {
                 return redirect()->route('login');
             }
+            // Trang OTP: phiên xác thực 2FA hết hạn → về trang đăng nhập, không về /otp trống.
+            if ($request->is('otp') || $request->is('otp/*')) {
+                return redirect()->route('login')
+                    ->with('error', 'Phiên xác thực OTP đã hết hạn. Vui lòng đăng nhập lại.');
+            }
             return redirect()->back()->withInput($request->except('_token'))
                 ->with('error', 'Phiên làm việc đã hết hạn. Vui lòng thử lại.');
         });

@@ -90,8 +90,9 @@ Route::middleware(['auth.staff'])->group(function () {
         Route::get('/{ma_tai_khoan}/phan-quyen',  [NhanVienController::class, 'permissions']      )->name('permissions');
         Route::post('/{ma_tai_khoan}/phan-quyen', [NhanVienController::class, 'updatePermissions'])->name('permissions.update');
         Route::put('/{ma_tai_khoan}',   [NhanVienController::class, 'update'])->name('update');
-        Route::post('/{ma_tai_khoan}/resend', [NhanVienController::class, 'resend'])->name('resend');
-        Route::delete('/{ma_tai_khoan}',[NhanVienController::class, 'destroy'])->name('destroy');
+        Route::post('/{ma_tai_khoan}/resend',       [NhanVienController::class, 'resend']    )->name('resend');
+        Route::post('/{ma_tai_khoan}/vo-hieu-hoa', [NhanVienController::class, 'deactivate'])->name('deactivate');
+        Route::delete('/{ma_tai_khoan}',           [NhanVienController::class, 'destroy']   )->name('destroy');
     });
 
     // ── DANH SÁCH KHÁCH HÀNG ─────────────────────────────────

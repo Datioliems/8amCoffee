@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -45,7 +45,7 @@
     </div>
 
     <div class="head">
-        <img src="{{ asset('images/logo8am.jpg') }}" alt="8AM Coffee">
+        <img src="{{ \App\Support\Cdn::url('images/logo8am.jpg') }}" alt="8AM Coffee">
         <div>
             <h1>8AM Coffee — Báo cáo doanh thu</h1>
             <p class="sub">Hệ thống quản trị 8am.coffee</p>

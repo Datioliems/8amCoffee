@@ -1,4 +1,4 @@
-@extends('layouts.customer')
+﻿@extends('layouts.customer')
 @section('title', 'Thực đơn - 8am Coffee')
 
 @push('head')
@@ -12,7 +12,7 @@
 {{-- Hero --}}
 <section class="overflow-hidden rounded-[1.75rem] bg-[#1A1A1A] text-white am-shadow">
     <div class="relative min-h-56 p-6 md:min-h-72 md:p-8">
-        <img src="{{ asset('images/8-AM-Coffee-Roastery-16.jpg') }}" alt="Không gian 8AM Coffee" class="absolute inset-0 h-full w-full object-cover opacity-50">
+        <img src="{{ \App\Support\Cdn::url('images/8-AM-Coffee-Roastery-16.jpg') }}" alt="Không gian 8AM Coffee" class="absolute inset-0 h-full w-full object-cover opacity-50">
         <div class="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-[#1A1A1A]/45 to-transparent"></div>
         <div class="relative flex h-full flex-col justify-between">
             <div class="flex items-center justify-between gap-3">
@@ -37,7 +37,7 @@
     <div id="showroom-root" class="mt-4 grid grid-cols-1 gap-0 px-0 lg:grid-cols-4 lg:gap-4 lg:px-5"
          data-model-url="{{ \App\Support\Cdn::url('models/'.$model3d) }}"
          data-img-base="{{ asset('images') }}"
-         data-photo-url="{{ asset('images/8-AM-Coffee-Roastery-4.jpg') }}"
+         data-photo-url="{{ \App\Support\Cdn::url('images/8-AM-Coffee-Roastery-4.jpg') }}"
          data-tables-url="{{ route('customer.tables', $ban->ma_ban) }}"
          data-move-url="{{ route('customer.move', ['ma_ban' => $ban->ma_ban, 'to' => '__TO__']) }}"
          data-redirect-url="{{ route('customer.menu', ['ma_ban' => '__TO__']) }}"

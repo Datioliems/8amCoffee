@@ -18,7 +18,6 @@ primary_region = "sin"            # Singapore — gần Việt Nam nhất
   auto_stop_machines   = true
   auto_start_machines  = true
   min_machines_running = 0
-
   [http_service.concurrency]
     type       = "requests"
     soft_limit = 100
@@ -30,13 +29,6 @@ primary_region = "sin"            # Singapore — gần Việt Nam nhất
     method       = "GET"
     path         = "/login"
     timeout      = "10s"
-
-# Persistent volume — lưu ảnh bàn upload (public/images/)
-# Xóa mục [[mounts]] này nếu không cần upload ảnh bàn.
-[[mounts]]
-  source      = "images_data"
-  destination = "/var/www/html/public/images"
-  initial_size = "1gb"
 
 [[vm]]
   memory   = "512mb"

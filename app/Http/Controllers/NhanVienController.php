@@ -280,11 +280,38 @@ class NhanVienController extends Controller
         return back()->with('success', $msg);
     }
 
+    /** Vô hiệu hoá tài khoản (không xoá) — dành cho tài khoản đã kích hoạt / có hoạt động. */
+    public function deactivate(string $maTaiKhoan)
+    {
+        $acc = $this->findAccount($maTaiKhoan);
+        abort_if($maTaiKhoan === session('tai_khoan_id'), 403, 'Không thể tự vô hiệu hoá tài khoản đang đăng nhập.');
+        $this->authorizeManage($acc);
+
+        if ($acc->trang_thai === 'inactive') {
+            return back()->with('error', 'Tài khoản đã ở trạng thái vô hiệu hoá rồi.');
+        }
+
+        DB::table('TAI_KHOAN')
+            ->where('ma_tai_khoan', $maTaiKhoan)
+            ->update(['trang_thai' => 'inactive']);
+
+        NhatKyHanhDong::ghi('vo_hieu_hoa_tai_khoan', 'tai_khoan', $maTaiKhoan,
+            "Vô hiệu hoá tài khoản {$maTaiKhoan} ({$acc->ten_nv})");
+
+        return back()->with('success', "Đã vô hiệu hoá tài khoản "{$acc->ten_tk}" ({$acc->ten_nv}). Tài khoản không thể đăng nhập cho đến khi được kích hoạt lại.");
+    }
+
     public function destroy(string $maTaiKhoan)
     {
         $acc = $this->findAccount($maTaiKhoan);
         abort_if($maTaiKhoan === session('tai_khoan_id'), 403, 'Không thể tự xóa tài khoản đang đăng nhập.');
         $this->authorizeManage($acc);
+
+        // Tài khoản đã xác nhận (active) → không được xoá, chỉ vô hiệu hoá.
+        if ($acc->trang_thai === 'active') {
+            return back()->with('error',
+                'Không thể xoá tài khoản đã kích hoạt. Hãy dùng "Vô hiệu hoá" để khoá đăng nhập mà vẫn giữ lịch sử.');
+        }
 
         try {
             DB::transaction(function () use ($acc) {
@@ -292,10 +319,11 @@ class NhanVienController extends Controller
                 DB::table('NHAN_VIEN')->where('ma_nv', $acc->nv)->delete();
             });
         } catch (\Illuminate\Database\QueryException $e) {
-            return back()->with('error', 'Không thể xóa tài khoản: nhân viên còn dữ liệu liên quan trong hệ thống (phiếu nhập, kiểm kê, v.v.). Vui lòng liên hệ quản trị viên.');
+            return back()->with('error', 'Không thể xóa tài khoản: nhân viên còn dữ liệu liên quan trong hệ thống (phiếu nhập, kiểm kê, v.v.).');
         }
 
-        NhatKyHanhDong::ghi('xoa_tai_khoan', 'tai_khoan', $maTaiKhoan, "Xóa tài khoản {$maTaiKhoan}");
+        NhatKyHanhDong::ghi('xoa_tai_khoan', 'tai_khoan', $maTaiKhoan,
+            "Xóa tài khoản {$maTaiKhoan} ({$acc->ten_nv}) — chờ kích hoạt / đã vô hiệu hoá");
         return back()->with('success', "Đã xóa tài khoản {$maTaiKhoan}.");
     }
 

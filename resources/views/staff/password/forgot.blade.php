@@ -1,17 +1,17 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Quên mật khẩu - 8AM Coffee</title>
-    <link rel="icon" type="image/jpeg" href="{{ asset('images/logo8am.jpg') }}">
+    <link rel="icon" type="image/jpeg" href="{{ \App\Support\Cdn::url('images/logo8am.jpg') }}">
     <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-[#F6F3F2] text-[#1A1A1A]">
 <main class="grid min-h-screen place-items-center px-5 py-10">
     <div class="w-full max-w-md rounded-[2rem] bg-[#FCFAFA] p-7 ring-1 ring-[#522C25]/10 md:p-9">
-        <img src="{{ asset('images/logo8am.jpg') }}" alt="8AM Coffee" class="mb-5 h-14 w-14 rounded-2xl object-cover ring-1 ring-[#522C25]/10">
+        <img src="{{ \App\Support\Cdn::url('images/logo8am.jpg') }}" alt="8AM Coffee" class="mb-5 h-14 w-14 rounded-2xl object-cover ring-1 ring-[#522C25]/10">
         <h1 class="text-3xl font-semibold">Quên mật khẩu</h1>
         <p class="mt-3 text-sm leading-6 text-[#522C25]/65">Nhập <strong>tên đăng nhập</strong> hoặc <strong>email</strong>. Hệ thống sẽ gửi link đặt lại mật khẩu tới email của tài khoản.</p>
 

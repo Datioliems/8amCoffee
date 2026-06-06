@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', isset($mon) ? 'Sửa món' : 'Thêm món')
 @section('page-title', isset($mon) ? 'Sửa món' : 'Thêm món')
@@ -7,7 +7,7 @@
 @php
     $oldImage = old('hinh_anh');
     $previewUrl = $oldImage
-        ? (str_starts_with($oldImage, 'http') || str_starts_with($oldImage, '/') ? $oldImage : asset('images/' . $oldImage))
+        ? (str_starts_with($oldImage, 'http') || str_starts_with($oldImage, '/') ? $oldImage : \App\Support\Cdn::url('images/' . $oldImage))
         : ($mon->image_url ?? null);
     $selectedTemperatures = old('temperature_options', isset($mon)
         ? $mon->options->where('loai_option', 'temperature')->where('trang_thai', 'active')->pluck('ten_option')->all()

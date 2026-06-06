@@ -1,17 +1,17 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Đổi mật khẩu lần đầu — 8AM Coffee</title>
-    <link rel="icon" type="image/jpeg" href="{{ asset('images/logo8am.jpg') }}">
+    <link rel="icon" type="image/jpeg" href="{{ \App\Support\Cdn::url('images/logo8am.jpg') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="flex min-h-screen items-center justify-center bg-[#F6F3F2] p-4">
     <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl ring-1 ring-[#522C25]/10">
         <div class="mb-6 text-center">
-            <img src="{{ asset('images/logo8am.jpg') }}" class="mx-auto h-14 w-14 rounded-xl object-cover ring-1 ring-[#522C25]/10" alt="8AM Coffee">
+            <img src="{{ \App\Support\Cdn::url('images/logo8am.jpg') }}" class="mx-auto h-14 w-14 rounded-xl object-cover ring-1 ring-[#522C25]/10" alt="8AM Coffee">
             <h1 class="mt-4 text-xl font-bold text-[#1A1A1A]">Đổi mật khẩu lần đầu</h1>
             <p class="mt-1 text-sm leading-6 text-[#522C25]/65">Vì lý do bảo mật, vui lòng đặt mật khẩu mới của riêng bạn trước khi sử dụng hệ thống.</p>
         </div>

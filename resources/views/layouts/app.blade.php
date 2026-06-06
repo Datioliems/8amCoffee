@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', '8AM Coffee - Quản trị')</title>
-    <link rel="icon" type="image/jpeg" href="{{ asset('images/logo8am.jpg') }}">
+    <link rel="icon" type="image/jpeg" href="{{ \App\Support\Cdn::url('images/logo8am.jpg') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -24,7 +24,7 @@
 
 <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-[#522C25]/10 bg-[#FCFAFA] lg:flex">
     <div class="flex h-20 shrink-0 items-center gap-3 border-b border-[#522C25]/10 px-5">
-        <img src="{{ asset('images/logo8am.jpg') }}" alt="8AM Coffee" class="h-11 w-11 rounded-xl object-cover ring-1 ring-[#522C25]/10">
+        <img src="{{ \App\Support\Cdn::url('images/logo8am.jpg') }}" alt="8AM Coffee" class="h-11 w-11 rounded-xl object-cover ring-1 ring-[#522C25]/10">
         <div>
             <p class="font-semibold leading-none">8am.coffee</p>
             <p class="mt-1 text-[11px] uppercase tracking-[0.18em] text-[#522C25]/60">quản trị</p>

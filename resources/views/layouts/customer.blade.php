@@ -1,11 +1,11 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', '8AM Coffee - Đặt món')</title>
-    <link rel="icon" type="image/jpeg" href="{{ asset('images/logo8am.jpg') }}">
+    <link rel="icon" type="image/jpeg" href="{{ \App\Support\Cdn::url('images/logo8am.jpg') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Chivo:wght@500;600;700&family=EB+Garamond:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Work+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -19,7 +19,7 @@
     <div class="mx-auto flex h-16 max-w-5xl items-center justify-between px-4 md:px-6">
         <a href="#" class="flex items-center gap-3">
             <span class="am-brand-mark">
-                <img src="{{ asset('images/logo8am-brand.png') }}" alt="8AM Coffee" class="h-11 w-11 rounded-full object-cover shadow-sm ring-1 ring-[#522C25]/10">
+                <img src="{{ \App\Support\Cdn::url('images/logo8am-brand.png') }}" alt="8AM Coffee" class="h-11 w-11 rounded-full object-cover shadow-sm ring-1 ring-[#522C25]/10">
             </span>
             <div>
                 <p class="am-headline font-semibold leading-none text-[#1A1A1A]">8am.coffee</p>
@@ -58,7 +58,7 @@
             <header class="sticky top-0 z-20 flex h-18 items-center justify-between border-b border-[#522C25]/10 bg-[#FCFAFA]/95 px-5 py-4 backdrop-blur">
                 <button @click="closeCustomizer()" class="text-3xl leading-none text-[#BB0011]" aria-label="Quay lại">←</button>
                 <div class="flex items-center gap-3">
-                    <img src="{{ asset('images/logo8am-brand.png') }}" alt="8AM Coffee" class="h-7 w-7 rounded-full object-cover">
+                    <img src="{{ \App\Support\Cdn::url('images/logo8am-brand.png') }}" alt="8AM Coffee" class="h-7 w-7 rounded-full object-cover">
                     <span class="am-headline text-2xl font-semibold">8am.cafe</span>
                 </div>
                 <span class="am-mono rounded-full bg-[#E82C2A] px-4 py-2 text-xs font-bold tracking-[0.14em] text-white">Bàn</span>

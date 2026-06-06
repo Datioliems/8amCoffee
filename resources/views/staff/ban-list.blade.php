@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('title', 'Quản lý bàn & QR - 8AM Coffee')
 @section('page-title', 'Bàn & QR')
@@ -136,7 +136,7 @@
                 {{-- Ảnh bàn --}}
                 <div class="flex items-center gap-3 border-t border-[#522C25]/10 pt-3">
                     @if($ban->anh)
-                        <img src="{{ asset('images/'.$ban->anh) }}?v={{ $ban->updated_at?->timestamp ?? time() }}"
+                        <img src="{{ \App\Support\Cdn::url('images/'.$ban->anh) }}?v={{ $ban->updated_at?->timestamp ?? time() }}"
                              class="h-14 w-20 shrink-0 rounded-lg object-cover ring-1 ring-[#522C25]/10" alt="Ảnh bàn {{ $ban->so_ban }}">
                     @else
                         <div class="flex h-14 w-20 shrink-0 items-center justify-center rounded-lg bg-[#F2F2F2] text-[10px] text-[#522C25]/40">Chưa có</div>

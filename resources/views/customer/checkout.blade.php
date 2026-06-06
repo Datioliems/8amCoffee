@@ -1,4 +1,4 @@
-@extends('layouts.customer')
+﻿@extends('layouts.customer')
 @section('title', 'Xác nhận đặt món')
 
 @section('content')
@@ -9,7 +9,7 @@
 <div class="mx-auto max-w-2xl">
     <div class="mb-6 overflow-hidden rounded-[1.75rem] bg-[#1A1A1A] text-white">
         <div class="relative p-6 md:p-8">
-            <img src="{{ asset('images/latte.jpg') }}" alt="Xác nhận đơn hàng" class="absolute inset-0 h-full w-full object-cover opacity-35">
+            <img src="{{ \App\Support\Cdn::url('images/latte.jpg') }}" alt="Xác nhận đơn hàng" class="absolute inset-0 h-full w-full object-cover opacity-35">
             <div class="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] to-[#1A1A1A]/40"></div>
             <div class="relative">
                 <p class="text-xs uppercase tracking-[0.2em] text-white/70">Bàn {{ $order->ban->so_ban ?? '?' }}</p>
