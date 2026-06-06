@@ -125,7 +125,11 @@ class NhanVienController extends Controller
         // Quyền target đang có nhưng người sửa KHÔNG có thẩm quyền → giữ nguyên (không tước ngoài tầm).
         $ngoaiTam = array_values(array_diff(Perm::effectiveFor($target), $grantable));
 
-        $target->update(['quyen' => array_values(array_unique(array_merge($chosen, $ngoaiTam)))]);
+        $merged = array_values(array_unique(array_merge($chosen, $ngoaiTam)));
+
+        // Nếu kết quả rỗng (không chọn quyền nào + không có quyền ngoài tầm) → reset về mặc định vai trò
+        // thay vì lưu mảng rỗng [] vốn gây mất toàn bộ quyền.
+        $target->update(['quyen' => empty($merged) ? null : $merged]);
 
         NhatKyHanhDong::ghi('cap_nhat_phan_quyen', 'tai_khoan', $maTaiKhoan, "Cập nhật phân quyền cho {$maTaiKhoan}");
         return back()->with('success', 'Đã cập nhật quyền cho ' . ($target->nhanVien?->ten_nv ?? $target->ten_tk) . '.');

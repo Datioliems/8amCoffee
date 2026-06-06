@@ -16,6 +16,19 @@ class AuthMiddleware
             if (! $this->khoiPhucGhiNho($request)) {
                 return redirect()->route('login')->with('error', 'Vui lòng đăng nhập.');
             }
+        } elseif (! session('chuc_vu')) {
+            // Phiên có tai_khoan_id nhưng thiếu chuc_vu (session bị ghi thiếu hoặc container restart).
+            // Tải lại thông tin từ DB để khôi phục đầy đủ.
+            $tk = TaiKhoan::with('nhanVien')->find(session('tai_khoan_id'));
+            if (! $tk || $tk->trang_thai !== 'active') {
+                $request->session()->flush();
+                return redirect()->route('login')->with('error', 'Phiên không hợp lệ, vui lòng đăng nhập lại.');
+            }
+            $request->session()->put('ma_nv',        $tk->ma_nv);
+            $request->session()->put('ten_nv',       $tk->nhanVien?->ten_nv ?? $tk->ten_tk);
+            $request->session()->put('chuc_vu',      $tk->chuc_vu);
+            $request->session()->put('ma_chi_nhanh', $tk->nhanVien?->ma_chi_nhanh);
+            $request->session()->put('quyen',        Perm::effectiveFor($tk));
         }
 
         return $next($request);

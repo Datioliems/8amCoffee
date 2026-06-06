@@ -41,8 +41,13 @@ class Perm
             return array_keys(self::catalog());
         }
         $override = $tk->quyen; // array|null (đã cast)
-        if (is_array($override)) {
-            return array_values(array_intersect($override, array_keys(self::catalog())));
+        // Chỉ dùng override khi là mảng CÓ GIÁ TRỊ sau khi lọc qua catalog.
+        // Mảng rỗng [] (vd: lưu form quyền không chọn gì) → dùng mặc định vai trò.
+        if (is_array($override) && count($override) > 0) {
+            $effective = array_values(array_intersect($override, array_keys(self::catalog())));
+            if (count($effective) > 0) {
+                return $effective;
+            }
         }
         return self::roleDefaults($tk->chuc_vu);
     }
@@ -54,7 +59,11 @@ class Perm
             return array_keys(self::catalog());
         }
         $q = session('quyen');
-        return is_array($q) ? $q : self::roleDefaults(session('chuc_vu'));
+        // Mảng rỗng [] coi như chưa có → fallback về mặc định vai trò.
+        if (is_array($q) && count($q) > 0) {
+            return $q;
+        }
+        return self::roleDefaults(session('chuc_vu'));
     }
 
     public static function can(string $key): bool
