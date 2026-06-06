@@ -51,12 +51,6 @@
             <div class=”flex gap-2”>
                 <input type=”text” name=”uid” id=”uid-input” required placeholder=”Quẹt thẻ hoặc gõ UID”
                        class=”w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm font-mono transition”>
-                {{-- Nút NFC: ẩn bằng style inline (không phụ thuộc Tailwind purge),
-                     JS chỉ hiện khi trình duyệt hỗ trợ NDEFReader (Android Chrome) --}}
-                <button type=”button” id=”nfc-scan” style=”display:none”
-                        class=”shrink-0 rounded-lg border border-emerald-600/30 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100”>
-                    NFC
-                </button>
                 <button type=”button” id=”rfid-connect”
                         class=”shrink-0 rounded-lg border border-[#8B5A2B]/30 bg-[#FFF7E8] px-3 py-2 text-xs font-semibold text-[#8B5A2B] hover:bg-[#FCEFD6]”>
                     Kết nối đầu đọc
@@ -183,74 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => uidInput.classList.remove('ring-2', 'ring-emerald-400'), 1500);
     };
 
-    // ===== A) WEB NFC (Android Chrome) =====
-    (() => {
-        const nfcBtn = document.getElementById('nfc-scan');
-        if (!nfcBtn) return;
-
-        // Luôn ẩn trước — phòng trường hợp Blade cache / CSS override
-        nfcBtn.style.display = 'none';
-
-        if (!('NDEFReader' in window)) {
-            // Trình duyệt không hỗ trợ Web NFC → giữ ẩn, không báo lỗi
-            return;
-        }
-
-        // Hiện nút vì trình duyệt hỗ trợ NFC (chỉ Android Chrome)
-        nfcBtn.style.display = '';
-
-        let nfcReader = null;
-        let scanning  = false;
-
-        nfcBtn.addEventListener('click', async () => {
-            if (scanning) {
-                // Bấm lần 2 → dừng quét
-                nfcReader = null;
-                scanning  = false;
-                nfcBtn.textContent   = 'NFC';
-                statusEl.textContent = 'Đã dừng quét NFC.';
-                return;
-            }
-
-            try {
-                nfcReader = new NDEFReader();
-                await nfcReader.scan();
-                scanning             = true;
-                nfcBtn.textContent   = 'Dừng NFC';
-                statusEl.textContent = 'Đang chờ thẻ NFC — chạm thẻ vào lưng điện thoại...';
-
-                nfcReader.onreading = (event) => {
-                    // serialNumber trả về dạng "04:a3:b2:c1" → chuẩn hoá thành "04A3B2C1"
-                    const uid = (event.serialNumber || '')
-                        .replace(/:/g, '')
-                        .toUpperCase();
-                    if (uid) {
-                        setUid(uid);
-                        // Tự dừng sau khi đọc được 1 thẻ
-                        scanning           = false;
-                        nfcBtn.textContent = 'NFC';
-                    }
-                };
-
-                nfcReader.onreadingerror = () => {
-                    statusEl.textContent = 'Không đọc được thẻ — thử chạm lại.';
-                };
-
-            } catch (e) {
-                scanning           = false;
-                nfcBtn.textContent = 'NFC';
-                if (e.name === 'NotAllowedError') {
-                    statusEl.textContent = 'Bạn cần cho phép quyền NFC — kiểm tra cài đặt trình duyệt.';
-                } else if (e.name === 'NotSupportedError') {
-                    statusEl.textContent = 'Thiết bị không có NFC hoặc NFC chưa bật.';
-                } else {
-                    statusEl.textContent = 'Lỗi NFC: ' + e.message;
-                }
-            }
-        });
-    })();
-
-    // ===== B) ĐẦU ĐỌC RFID USB (Web Serial) =====
+    // ===== ĐẦU ĐỌC RFID USB (Web Serial) =====
     (() => {
         const btn = document.getElementById('rfid-connect');
         if (!btn) return;
@@ -325,7 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     })();
 
-    // ===== B) AUTOCOMPLETE khách đủ điều kiện =====
+    // ===== AUTOCOMPLETE khách đủ điều kiện =====
     (() => {
         const wrap = document.getElementById('kh-ac');
         const input = document.getElementById('kh-search');
