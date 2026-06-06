@@ -66,10 +66,6 @@ Route::get('/payment/vnpay/ipn',    [PaymentController::class, 'vnpayIpn']   )->
 // ── STAFF ─────────────────────────────────────────────────────
 Route::middleware(['auth.staff'])->group(function () {
 
-    // Đổi mật khẩu lần đầu (AuthMiddleware ép tới đây khi phai_doi_mk = true).
-    Route::get('/doi-mat-khau-lan-dau',  [\App\Http\Controllers\ForcePasswordController::class, 'show']  )->name('password.force');
-    Route::post('/doi-mat-khau-lan-dau', [\App\Http\Controllers\ForcePasswordController::class, 'update'])->name('password.force.update');
-
     Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('perm:dashboard.view')->name('dashboard');
 
     // ── PHÂN TÍCH AI (dự báo doanh thu + gợi ý món) ──────────

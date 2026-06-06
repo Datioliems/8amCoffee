@@ -18,11 +18,6 @@ class AuthMiddleware
             }
         }
 
-        // Buộc đổi mật khẩu lần đầu: chặn mọi route staff (trừ chính trang đổi MK + đăng xuất).
-        if (session('phai_doi_mk') && ! $request->routeIs('password.force', 'password.force.update', 'logout')) {
-            return redirect()->route('password.force');
-        }
-
         return $next($request);
     }
 
@@ -55,7 +50,6 @@ class AuthMiddleware
             $request->session()->put('chuc_vu',      $tk->chuc_vu);
             $request->session()->put('ma_chi_nhanh', $tk->nhanVien?->ma_chi_nhanh);
             $request->session()->put('quyen',        Perm::effectiveFor($tk));
-            $request->session()->put('phai_doi_mk',  (bool) $tk->phai_doi_mk);
 
             return true;
         } catch (\Throwable $e) {
