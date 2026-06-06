@@ -194,7 +194,7 @@ Route::middleware(['auth.staff'])->group(function () {
     Route::middleware('perm:inventory.manage')->prefix('inventory')->name('inventory.')->group(function () {
         Route::get('/',      [InventoryController::class, 'index']   )->name('index');
         Route::get('/alert', [InventoryController::class, 'lowStock'])->name('alert');
-        Route::resource('materials',  NguyenLieuController::class)->except(['show', 'index']);
+        Route::resource('materials',  NguyenLieuController::class)->except(['show']);
         Route::resource('import', ImportController::class)->only(['index', 'create', 'store', 'show']);
         Route::put('/import/{id}/approve',     [ImportController::class,    'approve'])->name('import.approve');
         Route::put('/import/{id}/cancel',      [ImportController::class,    'cancel'] )->name('import.cancel');

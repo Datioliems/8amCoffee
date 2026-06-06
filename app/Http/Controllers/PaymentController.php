@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\ThanhToanOnline;
+use App\Services\OrderService;
 use App\Services\PaymentService;
 use App\Services\VnpayService;
 use Illuminate\Http\Request;
@@ -16,6 +17,7 @@ class PaymentController extends Controller
     public function __construct(
         private PaymentService $paymentService,
         private VnpayService $vnpay,
+        private OrderService $orderService,
     ) {}
 
     public function show(string $maOrder)
@@ -25,6 +27,36 @@ class PaymentController extends Controller
             ->where('ma_order', $maOrder)
             ->where('ma_chi_nhanh', (string) session('ma_chi_nhanh', ''))
             ->firstOrFail();
+
+        // ── Tự động gộp đơn cùng bàn + cùng tên khách (chưa thanh toán) ──────
+        // Chỉ áp dụng cho đơn tại bàn (ma_ban không null) và chưa thanh toán.
+        if ($order->ma_ban && ! $order->hoaDon) {
+            $tenKhachGoc = mb_strtolower(trim($order->ten_khach ?? ''));
+
+            $siblings = Order::where('ma_chi_nhanh', $order->ma_chi_nhanh)
+                ->where('ma_ban', $order->ma_ban)
+                ->where('ma_order', '<>', $order->ma_order)
+                ->whereIn('trang_thai', ['cho_xac_nhan', 'da_xac_nhan', 'dang_pha_che', 'da_phuc_vu'])
+                ->get()
+                ->filter(fn($s) => mb_strtolower(trim($s->ten_khach ?? '')) === $tenKhachGoc);
+
+            if ($siblings->isNotEmpty()) {
+                $merged = 0;
+                foreach ($siblings as $sib) {
+                    try {
+                        $this->orderService->merge($order->ma_order, $sib->ma_order);
+                        $merged++;
+                    } catch (\Throwable) {
+                        // Bỏ qua nếu gộp thất bại (VD: đơn đã bị hủy)
+                    }
+                }
+                if ($merged > 0) {
+                    return redirect()->route('payment.show', $maOrder)
+                        ->with('info', "Đã tự động gộp {$merged} đơn cùng bàn của khách \"{$order->ten_khach}\".");
+                }
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         $tongTien = $this->tinhTongTien($order);
 

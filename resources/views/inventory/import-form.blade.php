@@ -5,7 +5,8 @@
 
 @section('content')
 <div class="max-w-3xl mx-auto">
-    <form method="POST" action="{{ route('inventory.import.store') }}" class="space-y-5" x-data="importForm()">
+    <form method="POST" action="{{ route('inventory.import.store') }}" class="space-y-5"
+          x-data="importForm({{ Js::from($nguyenLieus->map(fn($n)=>['ma_nl'=>$n->ma_nl,'ten_nl'=>$n->ten_nl,'don_vi'=>$n->don_vi])) }}, {{ Js::from($nccNguyenLieu) }})">
         @csrf
 
         {{-- Inline supplier modal --}}
@@ -57,7 +58,8 @@
                             + Thêm nhà cung cấp mới
                         </button>
                     </div>
-                    <select name="ma_ncc" x-ref="supplierSelect" required
+                    <select name="ma_ncc" x-ref="supplierSelect"
+                            x-model="selectedNcc" @change="onSupplierChange()" required
                             class="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-300">
                         <option value="">-- Chọn nhà cung cấp --</option>
                         @foreach($nhaCungCaps as $ncc)
@@ -67,6 +69,10 @@
                         @endforeach
                     </select>
                     @error('ma_ncc') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    <p x-show="selectedNcc && !supplierMap[selectedNcc]"
+                       class="mt-1 text-xs text-blue-500">
+                        Nhà cung cấp này chưa có lịch sử nhập — đang hiển thị toàn bộ nguyên liệu.
+                    </p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Ghi chú</label>
@@ -102,9 +108,11 @@
                                 <select :name="`items[${index}][ma_nl]`" x-model="row.ma_nl" required
                                         class="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-amber-300">
                                     <option value="">-- Chọn --</option>
-                                    @foreach($nguyenLieus as $nl)
-                                    <option value="{{ $nl->ma_nl }}">{{ $nl->ten_nl }} ({{ $nl->don_vi }})</option>
-                                    @endforeach
+                                    <template x-for="nl in filteredNls" :key="nl.ma_nl">
+                                        <option :value="nl.ma_nl"
+                                                :selected="nl.ma_nl === row.ma_nl"
+                                                x-text="`${nl.ten_nl} (${nl.don_vi})`"></option>
+                                    </template>
                                 </select>
                             </td>
                             <td class="py-2 pr-2">
@@ -138,15 +146,34 @@
 </div>
 
 <script>
-function importForm() {
+function importForm(allNls, supplierMap) {
     return {
         rows: [{ ma_nl: '{{ $preselectedNl ?? '' }}', so_luong: '', don_gia: '' }],
+        selectedNcc: '{{ old('ma_ncc', '') }}',
         showModal: false,
         saving: false,
         modalError: '',
         newNcc: { ten_ncc: '', sdt: '', email: '' },
+        supplierMap,
 
-        addRow() { this.rows.push({ so_luong: '', don_gia: '' }); },
+        /** Danh sách NL theo NCC đang chọn; nếu chưa có lịch sử → hiện tất cả */
+        get filteredNls() {
+            const ids = this.supplierMap[this.selectedNcc];
+            if (!this.selectedNcc || !ids || !ids.length) return allNls;
+            return allNls.filter(nl => ids.includes(nl.ma_nl));
+        },
+
+        /** Khi đổi NCC: reset các dòng đang chọn NL không thuộc NCC mới */
+        onSupplierChange() {
+            const ids = this.supplierMap[this.selectedNcc];
+            if (ids && ids.length) {
+                this.rows.forEach(row => {
+                    if (row.ma_nl && !ids.includes(row.ma_nl)) row.ma_nl = '';
+                });
+            }
+        },
+
+        addRow() { this.rows.push({ ma_nl: '', so_luong: '', don_gia: '' }); },
         removeRow(index) {
             if (this.rows.length > 1) this.rows.splice(index, 1);
         },
@@ -179,9 +206,11 @@ function importForm() {
                     this.modalError = data.errors?.ten_ncc?.[0] ?? 'Có lỗi xảy ra.';
                     return;
                 }
+                // Thêm option vào <select> gốc và cập nhật x-model
                 const select = this.$refs.supplierSelect;
                 const option = new Option(data.ten_ncc, data.ma_ncc, true, true);
                 select.add(option);
+                this.selectedNcc = data.ma_ncc;  // đồng bộ Alpine state
                 this.closeModal();
             } catch {
                 this.modalError = 'Không thể kết nối server.';

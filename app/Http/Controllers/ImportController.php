@@ -7,6 +7,7 @@ use App\Models\PhieuNhapKho;
 use App\Models\NhaCungCap;
 use App\Models\NguyenLieu;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ImportController extends Controller
 {
@@ -26,7 +27,18 @@ class ImportController extends Controller
         $nhaCungCaps   = NhaCungCap::orderBy('ten_ncc')->get();
         $nguyenLieus   = NguyenLieu::orderBy('ten_nl')->get();
         $preselectedNl = (string) $request->query('nl', '');
-        return view('inventory.import-form', compact('nhaCungCaps', 'nguyenLieus', 'preselectedNl'));
+
+        // Lịch sử: mỗi NCC đã từng nhập những NL nào → dùng để lọc dropdown
+        $nccNguyenLieu = DB::table('CHI_TIET_NHAP_KHO as ctnk')
+            ->join('PHIEU_NHAP_KHO as pnk', 'pnk.id', '=', 'ctnk.phieu_nhap_kho_id')
+            ->select('pnk.ma_ncc', 'ctnk.ma_nl')
+            ->groupBy('pnk.ma_ncc', 'ctnk.ma_nl')
+            ->get()
+            ->groupBy('ma_ncc')
+            ->map(fn($rows) => $rows->pluck('ma_nl')->values()->all())
+            ->toArray();
+
+        return view('inventory.import-form', compact('nhaCungCaps', 'nguyenLieus', 'preselectedNl', 'nccNguyenLieu'));
     }
 
     public function store(Request $request)

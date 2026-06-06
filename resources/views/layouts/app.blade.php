@@ -212,6 +212,9 @@
         @if(session('error'))
             <x-alert-toast type="error" :message="session('error')" />
         @endif
+        @if(session('info'))
+            <x-alert-toast type="info" :message="session('info')" />
+        @endif
         @yield('content')
     </section>
 </main>
