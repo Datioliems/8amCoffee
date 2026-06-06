@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\NguyenLieu;
+use App\Models\NhatKyHanhDong;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -64,6 +65,9 @@ class NguyenLieuController extends Controller
             }
         });
 
+        NhatKyHanhDong::ghi('tao_nguyen_lieu', 'nguyen_lieu', $validated['ma_nl'],
+            "Thêm nguyên liệu {$validated['ten_nl']} ({$validated['don_vi']})");
+
         return redirect()->route('inventory.materials.index')
             ->with('success', 'Đã thêm nguyên liệu: '.$validated['ten_nl']);
     }
@@ -104,6 +108,9 @@ class NguyenLieuController extends Controller
             );
         }
 
+        NhatKyHanhDong::ghi('cap_nhat_nguyen_lieu', 'nguyen_lieu', $material,
+            "Sửa nguyên liệu {$nguyenLieu->ten_nl}");
+
         return redirect()->route('inventory.materials.index')
             ->with('success', 'Đã cập nhật: '.$nguyenLieu->ten_nl);
     }
@@ -126,6 +133,9 @@ class NguyenLieuController extends Controller
         }
 
         $nguyenLieu->delete();
+
+        NhatKyHanhDong::ghi('xoa_nguyen_lieu', 'nguyen_lieu', $material,
+            "Xóa nguyên liệu {$nguyenLieu->ten_nl}");
 
         return redirect()->route('inventory.materials.index')
             ->with('success', 'Đã xóa nguyên liệu.');

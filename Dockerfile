@@ -9,7 +9,6 @@ WORKDIR /app
 COPY package*.json vite.config.js ./
 RUN npm ci
 COPY resources resources
-COPY public public
 RUN npm run build
 
 # Stage 2: PHP runtime

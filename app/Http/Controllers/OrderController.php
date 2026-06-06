@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreOrderRequest;
+use App\Models\NhatKyHanhDong;
 use App\Services\OrderService;
 use App\Models\Mon;
 use App\Models\Order;
@@ -191,6 +192,7 @@ class OrderController extends Controller
             ->firstOrFail();
 
         $this->orderService->confirm($maOrder);
+        NhatKyHanhDong::ghi('xac_nhan_don_hang', 'don_hang', $maOrder, "Xác nhận đơn {$maOrder}");
         if (request()->expectsJson()) return response()->json(['ok' => true]);
         return back()->with('success', 'Đã xác nhận đơn hàng.');
     }
@@ -299,6 +301,8 @@ class OrderController extends Controller
             return back()->withErrors(['merge' => $e->getMessage()]);
         }
 
+        NhatKyHanhDong::ghi('gop_don_hang', 'don_hang', $maOrder,
+            "Gộp đơn {$request->input('target_order')} vào {$maOrder}");
         return back()->with('success', 'Đã gộp đơn hàng.');
     }
 
@@ -321,6 +325,7 @@ class OrderController extends Controller
 
         try {
             $maOrderMoi = $this->orderService->splitItems($maOrder, $picks);
+            NhatKyHanhDong::ghi('tach_don_hang', 'don_hang', $maOrder, "Tách món từ đơn {$maOrder}");
             return back()->with('success', "Đã tách các món sang đơn mới: {$maOrderMoi}");
         } catch (\InvalidArgumentException $e) {
             return back()->withErrors(['split' => $e->getMessage()]);

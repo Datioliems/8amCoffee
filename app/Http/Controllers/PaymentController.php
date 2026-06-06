@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\NhatKyHanhDong;
 use App\Models\Order;
 use App\Models\ThanhToanOnline;
 use App\Services\OrderService;
@@ -106,6 +107,8 @@ class PaymentController extends Controller
                 maThe:       $maThe,
                 soDiemDoi:   $soDiemDoi,
             );
+            NhatKyHanhDong::ghi('thanh_toan_don_hang', 'don_hang', $maOrder,
+                "Thanh toán đơn {$maOrder} — {$phuongThuc}");
         } catch (ValidationException $e) {
             return back()->withErrors($e->errors())->withInput();
         }

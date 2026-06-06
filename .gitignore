@@ -25,3 +25,7 @@ yarn-error.log
 
 # Thu muc model 3D goc (rat nang) - khong commit, da co tren R2
 /MoHinh_Nuoc/
+
+# Credentials & temp files
+fly_secrets.txt
+tmp_inspect_glb.mjs

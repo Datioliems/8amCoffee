@@ -202,6 +202,7 @@
         @perm('scanlog.view')<a href="{{ route('scanlog.index') }}" class="block rounded-xl px-3 py-2 text-sm">Log quét QR</a>@endperm
         @perm('anomaly.view')<a href="{{ route('scan-anomaly.index') }}" class="block rounded-xl px-3 py-2 text-sm">Cảnh báo QR bất thường</a>@endperm
         @perm('auditlog.view')<a href="{{ route('auditlog.index') }}" class="block rounded-xl px-3 py-2 text-sm">Nhật ký đăng nhập</a>@endperm
+        @perm('auditlog.view')<a href="{{ route('hanhdonlog.index') }}" class="block rounded-xl px-3 py-2 text-sm">Nhật ký hành động</a>@endperm
         @perm('emaillog.view')<a href="{{ route('emaillog.index') }}" class="block rounded-xl px-3 py-2 text-sm">Nhật ký Email</a>@endperm
     </div>
 

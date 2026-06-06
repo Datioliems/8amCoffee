@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\StaffCredentialsMail;
 use App\Models\EmailLog;
+use App\Models\NhatKyHanhDong;
 use App\Models\TaiKhoan;
 use App\Services\EmailVerificationService;
 use App\Support\Perm;
@@ -126,6 +127,7 @@ class NhanVienController extends Controller
 
         $target->update(['quyen' => array_values(array_unique(array_merge($chosen, $ngoaiTam)))]);
 
+        NhatKyHanhDong::ghi('cap_nhat_phan_quyen', 'tai_khoan', $maTaiKhoan, "Cập nhật phân quyền cho {$maTaiKhoan}");
         return back()->with('success', 'Đã cập nhật quyền cho ' . ($target->nhanVien?->ten_nv ?? $target->ten_tk) . '.');
     }
 
@@ -198,6 +200,7 @@ class NhanVienController extends Controller
                 ? "Email kèm link kích hoạt đã gửi tới {$data['email']}."
                 : "Chưa gửi được email — mật khẩu tạm: {$matKhau}. Hãy bấm “Gửi lại kích hoạt”.");
 
+        NhatKyHanhDong::ghi('tao_tai_khoan', 'tai_khoan', null, "Tạo tài khoản nhân viên mới");
         return back()->with('success', $msg);
     }
 
@@ -269,6 +272,7 @@ class NhanVienController extends Controller
             $msg .= $sent ? " Mật khẩu mới đã gửi tới {$acc->email}." : " Mật khẩu mới: {$newPassword}";
         }
 
+        NhatKyHanhDong::ghi('cap_nhat_tai_khoan', 'tai_khoan', $maTaiKhoan, "Sửa tài khoản {$maTaiKhoan}");
         return back()->with('success', $msg);
     }
 
@@ -283,6 +287,7 @@ class NhanVienController extends Controller
             DB::table('NHAN_VIEN')->where('ma_nv', $acc->nv)->delete();
         });
 
+        NhatKyHanhDong::ghi('xoa_tai_khoan', 'tai_khoan', $maTaiKhoan, "Xóa tài khoản {$maTaiKhoan}");
         return back()->with('success', "Đã xóa tài khoản {$maTaiKhoan}.");
     }
 

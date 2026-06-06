@@ -1,0 +1,44 @@
+# fly.toml — 8AM Coffee deploy config
+# Docs: https://fly.io/docs/reference/configuration/
+
+app            = "8am-coffee"     # đổi thành tên app duy nhất của bạn trên Fly
+primary_region = "sin"            # Singapore — gần Việt Nam nhất
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT      = "8080"
+  APP_ENV   = "production"
+  APP_DEBUG = "false"
+
+[http_service]
+  internal_port        = 8080
+  force_https          = true
+  auto_stop_machines   = true
+  auto_start_machines  = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type       = "requests"
+    soft_limit = 100
+    hard_limit = 150
+
+  [[http_service.checks]]
+    grace_period = "40s"
+    interval     = "20s"
+    method       = "GET"
+    path         = "/login"
+    timeout      = "10s"
+
+# Persistent volume — lưu ảnh bàn upload (public/images/)
+# Xóa mục [[mounts]] này nếu không cần upload ảnh bàn.
+[[mounts]]
+  source      = "images_data"
+  destination = "/var/www/html/public/images"
+  initial_size = "1gb"
+
+[[vm]]
+  memory   = "512mb"
+  cpu_kind = "shared"
+  cpus     = 1

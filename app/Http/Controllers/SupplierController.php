@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\NhaCungCap;
+use App\Models\NhatKyHanhDong;
 use Illuminate\Http\Request;
 
 class SupplierController extends Controller
@@ -31,6 +32,7 @@ class SupplierController extends Controller
 
         NhaCungCap::create($validated);
 
+        NhatKyHanhDong::ghi('tao_nha_cung_cap', 'nha_cung_cap', null, "Thêm nhà cung cấp");
         return redirect()->route('inventory.supplier.index')
             ->with('success', 'Đã thêm nhà cung cấp: '.$validated['ten_ncc']);
     }
@@ -75,6 +77,7 @@ class SupplierController extends Controller
 
         $nhaCungCap->update($validated);
 
+        NhatKyHanhDong::ghi('cap_nhat_nha_cung_cap', 'nha_cung_cap', $supplier, "Sửa NCC {$supplier}");
         return redirect()->route('inventory.supplier.index')
             ->with('success', 'Đã cập nhật: '.$nhaCungCap->ten_ncc);
     }
@@ -83,6 +86,7 @@ class SupplierController extends Controller
     {
         NhaCungCap::findOrFail($supplier)->delete();
 
+        NhatKyHanhDong::ghi('xoa_nha_cung_cap', 'nha_cung_cap', $supplier, "Xóa NCC {$supplier}");
         return redirect()->route('inventory.supplier.index')
             ->with('success', 'Đã xóa nhà cung cấp.');
     }

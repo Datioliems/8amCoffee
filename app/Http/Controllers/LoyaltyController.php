@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CauHinhHang;
 use App\Models\GiaoDichDiem;
+use App\Models\NhatKyHanhDong;
 use App\Models\TheThanhVien;
 use App\Services\LoyaltyService;
 use Illuminate\Http\Request;
@@ -91,6 +92,9 @@ class LoyaltyController extends Controller
             ? $this->loyalty->issueCardByMaKh($uid, (string) $request->input('ma_kh'), $maChiNhanh)
             : $this->loyalty->issueCard($uid, (string) $request->input('sdt'), $maChiNhanh);
 
+        if ($res['ok']) {
+            NhatKyHanhDong::ghi('phat_the', 'the_thanh_vien', null, "Phát thẻ thành viên");
+        }
         return back()->with($res['ok'] ? 'success' : 'error', $res['message']);
     }
 
@@ -101,6 +105,8 @@ class LoyaltyController extends Controller
         $card = TheThanhVien::where('ma_the', $maThe)->firstOrFail();
         $card->trang_thai = $request->input('trang_thai');
         $card->save();
+        NhatKyHanhDong::ghi('cap_nhat_trang_thai_the', 'the_thanh_vien', $maThe,
+            "Đổi trạng thái thẻ {$maThe} → {$request->input('trang_thai')}");
 
         return back()->with('success', 'Đã cập nhật trạng thái thẻ ' . $card->ma_the . '.');
     }
@@ -114,6 +120,8 @@ class LoyaltyController extends Controller
         ]);
         $card = TheThanhVien::where('ma_the', $maThe)->firstOrFail();
         $this->loyalty->adjust($card, (int) $request->input('so_diem'), (string) $request->input('ly_do'));
+        NhatKyHanhDong::ghi('dieu_chinh_diem', 'the_thanh_vien', $maThe,
+            "Điều chỉnh {$request->input('so_diem')} điểm thẻ {$maThe}: {$request->input('ly_do')}");
 
         return back()->with('success', 'Đã điều chỉnh điểm cho thẻ ' . $card->ma_the . '.');
     }
@@ -208,6 +216,7 @@ class LoyaltyController extends Controller
             return back()->with('error', 'Chưa lưu được — hãy chạy "php artisan migrate" để tạo bảng CAU_HINH_HANG.');
         }
 
+        NhatKyHanhDong::ghi('cap_nhat_hang', 'cau_hinh_hang', null, 'Cập nhật cấu hình hạng thành viên');
         return back()->with('success', 'Đã lưu cấu hình hạng hội viên.');
     }
 
@@ -224,6 +233,7 @@ class LoyaltyController extends Controller
                 return back()->with('error', "Hạng \"{$hang->nhan}\" đang có {$soThe} thẻ. Chuyển thẻ sang hạng khác trước khi xóa.");
             }
             $hang->delete();
+            NhatKyHanhDong::ghi('xoa_hang', 'cau_hinh_hang', $maHang, "Xóa hạng thành viên {$maHang}");
         } catch (\Throwable $e) {
             return back()->with('error', 'Không xóa được: ' . $e->getMessage());
         }

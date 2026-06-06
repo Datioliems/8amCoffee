@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\NguyenLieu;
 use App\Models\PhieuKiemKe;
+use App\Models\NhatKyHanhDong;
 use App\Services\StockCheckService;
 use Illuminate\Http\Request;
 
@@ -46,12 +47,13 @@ class StockCheckController extends Controller
             'ghi_chu'            => 'nullable|string|max:300',
         ]);
 
-        $this->service->createCheck(
+        $phieu = $this->service->createCheck(
             maChiNhanh: session('ma_chi_nhanh'),
             maNv: session('ma_nv'),
             items: $validated['items'],
             ghiChu: $validated['ghi_chu'] ?? null,
         );
+        NhatKyHanhDong::ghi('tao_kiem_ke', 'phieu_kiem_ke', $phieu->ma_pkk, "Tạo phiếu kiểm kê {$phieu->ma_pkk}");
 
         return redirect()->route('inventory.stockcheck.index')
             ->with('success', 'Tạo phiếu kiểm kê thành công.');
@@ -60,6 +62,7 @@ class StockCheckController extends Controller
     public function confirm(string $id)
     {
         $this->service->confirm($id);
+        NhatKyHanhDong::ghi('xac_nhan_kiem_ke', 'phieu_kiem_ke', $id, "Xác nhận kiểm kê {$id}");
 
         return back()->with('success', 'Đã xác nhận kiểm kê. Tồn kho thực tế đã được cập nhật.');
     }
@@ -67,6 +70,7 @@ class StockCheckController extends Controller
     public function cancel(string $id)
     {
         $this->service->cancel($id);
+        NhatKyHanhDong::ghi('huy_kiem_ke', 'phieu_kiem_ke', $id, "Hủy kiểm kê {$id}");
 
         return back()->with('success', 'Đã hủy phiếu kiểm kê.');
     }

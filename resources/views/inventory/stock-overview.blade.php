@@ -17,6 +17,8 @@
                 <a href="{{ route('inventory.materials.create') }}" class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600">Thêm nguyên liệu</a>
                 <a href="{{ route('inventory.import.create') }}" class="rounded-xl bg-[#1A1A1A] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#522C25]">Tạo phiếu nhập</a>
                 <a href="{{ route('inventory.stockcheck.create') }}" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#522C25] ring-1 ring-[#522C25]/15 transition hover:bg-[#FAF7F2]">Kiểm kê</a>
+                <a href="{{ route('inventory.import.index') }}" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#522C25] ring-1 ring-[#522C25]/15 transition hover:bg-[#FAF7F2]">Danh sách phiếu nhập</a>
+                <a href="{{ route('inventory.stockcheck.index') }}" class="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#522C25] ring-1 ring-[#522C25]/15 transition hover:bg-[#FAF7F2]">Danh sách kiểm kê</a>
             </div>
         </div>
     </section>

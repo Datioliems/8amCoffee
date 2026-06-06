@@ -6,6 +6,7 @@ use App\Models\Ban;
 use App\Models\DanhMuc;
 use App\Models\DinhMuc;
 use App\Models\Mon;
+use App\Models\NhatKyHanhDong;
 use App\Models\MonOption;
 use App\Models\NguyenLieu;
 use App\Models\Topping;
@@ -194,6 +195,7 @@ class MenuController extends Controller
             return $mon;
         });
 
+        NhatKyHanhDong::ghi('tao_mon', 'mon', null, "Thêm món mới vào menu");
         return redirect()->route('menu.index')
             ->with('success', 'Đã thêm món: '.$mon->ten_mon);
     }
@@ -275,6 +277,7 @@ class MenuController extends Controller
             $this->syncDisplayOptions($mon->ma_mon, $temperatureOptions, $sweetnessOptions, $toppingOptions);
         });
 
+        NhatKyHanhDong::ghi('cap_nhat_mon', 'mon', $maMon, "Sửa món {$maMon}");
         return redirect()->route('menu.index')
             ->with('success', 'Đã cập nhật món: '.$mon->ten_mon);
     }
@@ -408,6 +411,7 @@ class MenuController extends Controller
         $mon = Mon::findOrFail($maMon);
         $mon->update(['trang_thai' => 'an']);
 
+        NhatKyHanhDong::ghi('an_mon', 'mon', $maMon, "Ẩn món {$maMon}");
         return redirect()->back()
             ->with('success', 'Đã ẩn món: '.$mon->ten_mon);
     }
@@ -417,6 +421,7 @@ class MenuController extends Controller
         $mon = Mon::findOrFail($maMon);
         $mon->update(['trang_thai' => 'active']);
 
+        NhatKyHanhDong::ghi('hien_mon', 'mon', $maMon, "Hiện lại món {$maMon}");
         return redirect()->back()
             ->with('success', 'Đã bỏ ẩn món: '.$mon->ten_mon);
     }

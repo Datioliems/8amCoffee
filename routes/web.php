@@ -126,6 +126,7 @@ Route::middleware(['auth.staff'])->group(function () {
 
     // ── NHẬT KÝ ĐĂNG NHẬP / AN TOÀN ──────────────────────────
     Route::middleware('perm:auditlog.view')->get('/nhat-ky-dang-nhap', [\App\Http\Controllers\AuditLogController::class, 'index'])->name('auditlog.index');
+    Route::middleware('perm:auditlog.view')->get('/nhat-ky-hanh-dong', [\App\Http\Controllers\NhatKyHanhDongController::class, 'index'])->name('hanhdonlog.index');
     // ── NHẬT KÝ EMAIL ────────────────────────────────────────
     Route::middleware('perm:emaillog.view')->group(function () {
         Route::get('/nhat-ky-email',            [\App\Http\Controllers\EmailLogController::class, 'index']      )->name('emaillog.index');

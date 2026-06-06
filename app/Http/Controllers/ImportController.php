@@ -8,6 +8,7 @@ use App\Models\NhaCungCap;
 use App\Models\NguyenLieu;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Models\NhatKyHanhDong;
 
 class ImportController extends Controller
 {
@@ -52,13 +53,15 @@ class ImportController extends Controller
             'ghi_chu'          => 'nullable|string|max:300',
         ]);
 
-        $this->importService->createImport(
+        $phieu = $this->importService->createImport(
             maChiNhanh: session('ma_chi_nhanh'),
             maNv:       session('ma_nv'),
             maNcc:      $validated['ma_ncc'],
             items:      $validated['items'],
             ghiChu:     $validated['ghi_chu'] ?? null,
         );
+        NhatKyHanhDong::ghi('tao_phieu_nhap', 'phieu_nhap', $phieu->ma_pnk,
+            "Tạo phiếu nhập {$phieu->ma_pnk} — NCC: {$validated['ma_ncc']} — " . count($validated['items']) . ' NL');
 
         return redirect()->route('inventory.import.index')
                          ->with('success', 'Tạo phiếu nhập kho thành công.');
@@ -74,6 +77,7 @@ class ImportController extends Controller
     public function approve(string $id)
     {
         $this->importService->approve($id);
+        NhatKyHanhDong::ghi('duyet_phieu_nhap', 'phieu_nhap', $id, "Duyệt phiếu nhập {$id}");
         return back()->with('success', 'Đã duyệt phiếu nhập. Tồn kho đã được cập nhật.');
     }
 
@@ -81,6 +85,7 @@ class ImportController extends Controller
     public function cancel(string $id)
     {
         $this->importService->cancel($id);
+        NhatKyHanhDong::ghi('huy_phieu_nhap', 'phieu_nhap', $id, "Hủy phiếu nhập {$id}");
         return back()->with('success', 'Đã hủy phiếu nhập.');
     }
 }
