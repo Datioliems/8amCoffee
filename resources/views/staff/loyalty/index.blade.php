@@ -51,10 +51,11 @@
             <div class=”flex gap-2”>
                 <input type=”text” name=”uid” id=”uid-input” required placeholder=”Quẹt thẻ hoặc gõ UID”
                        class=”w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm font-mono transition”>
-                {{-- Nút NFC: hiện trên Android Chrome, ẩn tự động nếu không hỗ trợ --}}
-                <button type=”button” id=”nfc-scan”
-                        class=”shrink-0 rounded-lg border border-emerald-600/30 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100 hidden”>
-                    📱 NFC
+                {{-- Nút NFC: ẩn bằng style inline (không phụ thuộc Tailwind purge),
+                     JS chỉ hiện khi trình duyệt hỗ trợ NDEFReader (Android Chrome) --}}
+                <button type=”button” id=”nfc-scan” style=”display:none”
+                        class=”shrink-0 rounded-lg border border-emerald-600/30 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 hover:bg-emerald-100”>
+                    NFC
                 </button>
                 <button type=”button” id=”rfid-connect”
                         class=”shrink-0 rounded-lg border border-[#8B5A2B]/30 bg-[#FFF7E8] px-3 py-2 text-xs font-semibold text-[#8B5A2B] hover:bg-[#FCEFD6]”>
@@ -193,7 +194,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Hiện nút vì trình duyệt hỗ trợ NFC
-        nfcBtn.classList.remove('hidden');
+        nfcBtn.style.display = '';
 
         let nfcReader = null;
         let scanning  = false;
@@ -203,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Bấm lần 2 → dừng quét
                 nfcReader = null;
                 scanning  = false;
-                nfcBtn.textContent   = '📱 NFC';
+                nfcBtn.textContent   = 'NFC';
                 statusEl.textContent = 'Đã dừng quét NFC.';
                 return;
             }
@@ -212,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 nfcReader = new NDEFReader();
                 await nfcReader.scan();
                 scanning             = true;
-                nfcBtn.textContent   = '⏹ Dừng NFC';
+                nfcBtn.textContent   = 'Dừng NFC';
                 statusEl.textContent = 'Đang chờ thẻ NFC — chạm thẻ vào lưng điện thoại...';
 
                 nfcReader.onreading = (event) => {
