@@ -188,12 +188,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const nfcBtn = document.getElementById('nfc-scan');
         if (!nfcBtn) return;
 
+        // Luôn ẩn trước — phòng trường hợp Blade cache / CSS override
+        nfcBtn.style.display = 'none';
+
         if (!('NDEFReader' in window)) {
-            // Trình duyệt không hỗ trợ Web NFC → ẩn nút, không báo lỗi
+            // Trình duyệt không hỗ trợ Web NFC → giữ ẩn, không báo lỗi
             return;
         }
 
-        // Hiện nút vì trình duyệt hỗ trợ NFC
+        // Hiện nút vì trình duyệt hỗ trợ NFC (chỉ Android Chrome)
         nfcBtn.style.display = '';
 
         let nfcReader = null;
@@ -225,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         setUid(uid);
                         // Tự dừng sau khi đọc được 1 thẻ
                         scanning           = false;
-                        nfcBtn.textContent = '📱 NFC';
+                        nfcBtn.textContent = 'NFC';
                     }
                 };
 
@@ -235,7 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (e) {
                 scanning           = false;
-                nfcBtn.textContent = '📱 NFC';
+                nfcBtn.textContent = 'NFC';
                 if (e.name === 'NotAllowedError') {
                     statusEl.textContent = 'Bạn cần cho phép quyền NFC — kiểm tra cài đặt trình duyệt.';
                 } else if (e.name === 'NotSupportedError') {
