@@ -36,6 +36,8 @@ class NguyenLieuController extends Controller
 
     public function create()
     {
+        abort_unless(session('chuc_vu') === 'superadmin', 403, 'Chỉ chủ chuỗi mới được thêm nguyên liệu.');
+
         $nextMaNl = $this->generateMaterialCode();
 
         return view('inventory.nguyen-lieu-form', compact('nextMaNl'));
@@ -52,6 +54,8 @@ class NguyenLieuController extends Controller
         $nguongCanhBao = isset($validated['nguong_canh_bao']) ? (float) $validated['nguong_canh_bao'] : null;
         $maChiNhanh    = (string) session('ma_chi_nhanh', '');
         unset($validated['nguong_canh_bao']);
+
+        abort_unless(session('chuc_vu') === 'superadmin', 403, 'Chỉ chủ chuỗi mới được thêm nguyên liệu.');
 
         DB::transaction(function () use (&$validated, $nguongCanhBao, $maChiNhanh) {
             $validated['ma_nl'] = $this->generateMaterialCode(true);
@@ -74,6 +78,8 @@ class NguyenLieuController extends Controller
 
     public function edit(string $material)
     {
+        abort_unless(session('chuc_vu') === 'superadmin', 403, 'Chỉ chủ chuỗi mới được sửa nguyên liệu.');
+
         $maChiNhanh    = (string) session('ma_chi_nhanh', '');
         $nguyenLieu    = NguyenLieu::findOrFail($material);
         $tonKho        = DB::table('TON_KHO')
@@ -87,6 +93,8 @@ class NguyenLieuController extends Controller
 
     public function update(Request $request, string $material)
     {
+        abort_unless(session('chuc_vu') === 'superadmin', 403, 'Chỉ chủ chuỗi mới được sửa nguyên liệu.');
+
         $nguyenLieu = NguyenLieu::findOrFail($material);
         $maChiNhanh = (string) session('ma_chi_nhanh', '');
 

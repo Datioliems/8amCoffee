@@ -41,10 +41,27 @@ class EmailVerificationService
             }
         }
 
-        // Có MX là tốt nhất; fallback A/AAAA (một số domain nhận thư qua A record).
-        return checkdnsrr($domain, 'MX')
-            || checkdnsrr($domain, 'A')
-            || checkdnsrr($domain, 'AAAA');
+        // Dùng set_error_handler để bắt PHP warning từ checkdnsrr (vd: DNS timeout,
+        // mạng không khả dụng trong container) — PHP không throw exception cho trường hợp này.
+        // Nếu DNS không trả lời được → fail-open (để bước kích hoạt qua link xác nhận thay).
+        $dnsError = false;
+        set_error_handler(static function () use (&$dnsError): bool {
+            $dnsError = true;
+            return true; // ngăn PHP hiển thị warning
+        }, E_WARNING);
+
+        $hasMx   = checkdnsrr($domain, 'MX');
+        $hasA    = $hasMx ? false : checkdnsrr($domain, 'A');
+        $hasAAAA = ($hasMx || $hasA) ? false : checkdnsrr($domain, 'AAAA');
+
+        restore_error_handler();
+
+        // DNS không resolve được → không chặn, để link kích hoạt xác nhận quyền sở hữu
+        if ($dnsError) {
+            return true;
+        }
+
+        return $hasMx || $hasA || $hasAAAA;
     }
 
     /**

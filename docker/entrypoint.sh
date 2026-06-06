@@ -38,6 +38,16 @@ if [ "$MIGRATED" = "1" ] && [ "${RUN_SEED}" = "true" ]; then
     php artisan db:seed --force || true
 fi
 
+# Seed ảnh mặc định vào volume nếu volume còn trống (lần deploy đầu).
+IMAGES_DIR="/var/www/html/public/images"
+SEED_DIR="/var/www/html/public/images-seed"
+if [ -d "$SEED_DIR" ] && [ -z "$(ls -A "$IMAGES_DIR" 2>/dev/null)" ]; then
+    echo ">> Volume images trống — đang seed từ image..."
+    cp -r "$SEED_DIR/." "$IMAGES_DIR/"
+    chown -R www-data:www-data "$IMAGES_DIR"
+    echo ">> Đã seed $(ls "$IMAGES_DIR" | wc -l) file ảnh."
+fi
+
 # Cache cấu hình cho nhanh.
 php artisan config:cache || true
 php artisan route:cache  || true

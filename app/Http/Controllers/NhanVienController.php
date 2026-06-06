@@ -282,10 +282,14 @@ class NhanVienController extends Controller
         abort_if($maTaiKhoan === session('tai_khoan_id'), 403, 'Không thể tự xóa tài khoản đang đăng nhập.');
         $this->authorizeManage($acc);
 
-        DB::transaction(function () use ($acc) {
-            DB::table('TAI_KHOAN')->where('ma_tai_khoan', $acc->ma_tai_khoan)->delete();
-            DB::table('NHAN_VIEN')->where('ma_nv', $acc->nv)->delete();
-        });
+        try {
+            DB::transaction(function () use ($acc) {
+                DB::table('TAI_KHOAN')->where('ma_tai_khoan', $acc->ma_tai_khoan)->delete();
+                DB::table('NHAN_VIEN')->where('ma_nv', $acc->nv)->delete();
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            return back()->with('error', 'Không thể xóa tài khoản: nhân viên còn dữ liệu liên quan trong hệ thống (phiếu nhập, kiểm kê, v.v.). Vui lòng liên hệ quản trị viên.');
+        }
 
         NhatKyHanhDong::ghi('xoa_tai_khoan', 'tai_khoan', $maTaiKhoan, "Xóa tài khoản {$maTaiKhoan}");
         return back()->with('success', "Đã xóa tài khoản {$maTaiKhoan}.");

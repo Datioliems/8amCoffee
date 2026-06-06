@@ -61,6 +61,15 @@
             </button>
         </form>
         @endif
+        @if($order->trang_thai === 'dang_pha_che')
+        <form method="POST" action="{{ route('orders.status', $order->ma_order) }}" class="flex-1">
+            @csrf @method('PUT')
+            <input type="hidden" name="trang_thai" value="da_phuc_vu">
+            <button class="w-full rounded-full bg-amber-500 py-2 text-xs font-semibold text-white">
+                Đã phục vụ
+            </button>
+        </form>
+        @endif
         @if(!$order->ban || in_array($order->trang_thai, ['da_xac_nhan','dang_pha_che','da_phuc_vu']))
         <a href="{{ route('payment.show', $order->ma_order) }}"
            class="flex-1 rounded-full bg-[#52613B] py-2 text-center text-xs font-semibold text-white">

@@ -14,7 +14,7 @@
                 <p class="mt-1 text-sm text-[#522C25]/60">Theo dõi số lượng, tìm kiếm và lọc trạng thái nguyên liệu ngay tại đây.</p>
             </div>
             <div class="flex flex-wrap gap-2">
-                @if(in_array(session('chuc_vu'), ['admin', 'superadmin']))
+                @if(session('chuc_vu') === 'superadmin')
                 <a href="{{ route('inventory.materials.create') }}" class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-600">Thêm nguyên liệu</a>
                 @endif
                 @perm('import.create')
@@ -122,7 +122,7 @@
                                            class="text-sm font-semibold text-emerald-600 hover:underline">Nhập</a>
                                         @endperm
                                     @endif
-                                    @if(in_array(session('chuc_vu'), ['admin', 'superadmin']))
+                                    @if(session('chuc_vu') === 'superadmin')
                                     <a href="{{ route('inventory.materials.edit', $material->ma_nl) }}"
                                        class="text-sm font-semibold text-amber-600 hover:underline">Sửa</a>
                                     @endif

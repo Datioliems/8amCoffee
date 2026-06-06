@@ -21,7 +21,7 @@
                class="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-600 transition hover:border-amber-300 hover:text-amber-700">
                 Quay lại
             </a>
-            @if(in_array(session('chuc_vu'), ['admin', 'superadmin']))
+            @if(session('chuc_vu') === 'superadmin')
             <a href="{{ route('inventory.materials.create') }}"
                class="bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
                 + Thêm nguyên liệu
@@ -91,9 +91,11 @@
                         </div>
                     </td>
                     <td class="px-4 py-3 text-right">
-                        @if(in_array(session('chuc_vu'), ['admin', 'superadmin']))
+                        @if(session('chuc_vu') === 'superadmin')
                         <a href="{{ route('inventory.materials.edit', $nl->ma_nl) }}"
                            class="text-blue-500 hover:underline mr-3">Sửa</a>
+                        @endif
+                        @if(in_array(session('chuc_vu'), ['admin', 'superadmin']))
                         @if(isset($protectedIds[$nl->ma_nl]))
                             <span class="text-gray-300 cursor-not-allowed" title="Đang được dùng trong công thức / phiếu nhập / kiểm kê">Xóa</span>
                         @else
