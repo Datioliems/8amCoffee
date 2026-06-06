@@ -9,8 +9,10 @@
 .env
 .env.*
 /public/build
+/public/models
 /public/images
 npm-debug.log
 yarn-error.log
 /.idea
 /.vscode
+/.claude

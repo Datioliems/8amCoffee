@@ -35,6 +35,7 @@ COPY . .
 COPY --from=assets /app/public/build public/build
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction \
+ && mkdir -p public/images \
  && chown -R www-data:www-data storage bootstrap/cache public/images
 
 # Apache document root -> thư mục public
