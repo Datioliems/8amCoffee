@@ -46,10 +46,17 @@
             @csrf
             <p class="mb-2 text-sm font-semibold text-[#8B5A2B]">Phát thẻ mới</p>
 
-            {{-- UID nhập thủ công hoặc qua đầu đọc USB (gõ tay khi không có đầu đọc) --}}
-            <label class=”mb-1 block text-[11px] font-semibold text-[#522C25]/55”>UID thẻ (hex)</label>
-            <input type=”text” name=”uid” id=”uid-input” required placeholder=”Nhập UID thẻ (vd: 04A3B2C1)”
-                   class=”w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm font-mono transition”>
+            {{-- UID + đọc thẻ tự động qua đầu đọc (Web Serial) --}}
+            <label class="mb-1 block text-[11px] font-semibold text-[#522C25]/55">UID thẻ (hex)</label>
+            <div class="flex gap-2">
+                <input type="text" name="uid" id="uid-input" required placeholder="Quẹt thẻ hoặc gõ UID"
+                       class="w-full rounded-lg border border-[#522C25]/15 px-3 py-2 text-sm font-mono transition">
+                <button type="button" id="rfid-connect"
+                        class="shrink-0 rounded-lg border border-[#8B5A2B]/30 bg-[#FFF7E8] px-3 py-2 text-xs font-semibold text-[#8B5A2B] hover:bg-[#FCEFD6]">
+                    Kết nối đầu đọc
+                </button>
+            </div>
+            <p id="rfid-status" class="mt-1 text-[11px] text-[#522C25]/55">Bấm “Kết nối đầu đọc” rồi quẹt thẻ — UID tự điền (Chrome/Edge, đầu đọc cắm USB).</p>
 
             {{-- Chọn khách đủ điều kiện — gõ tên/SĐT, hiện gợi ý (autocomplete) --}}
             <label class="mt-3 mb-1 block text-[11px] font-semibold text-[#522C25]/55">Khách đủ điều kiện (gõ tên hoặc SĐT)</label>
@@ -156,10 +163,94 @@
 </div>
 
 <script>
-// ── Autocomplete khách đủ điều kiện ──
+// ── Đầu đọc RFID (Web Serial, tự kết nối khi cắm USB) + Autocomplete khách ──
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ===== AUTOCOMPLETE khách đủ điều kiện =====
+    // ===== A) ĐẦU ĐỌC RFID =====
+    (() => {
+        const btn = document.getElementById('rfid-connect');
+        const statusEl = document.getElementById('rfid-status');
+        const uidInput = document.getElementById('uid-input');
+        if (!btn) return;
+
+        if (!('serial' in navigator)) {
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
+            statusEl.textContent = 'Trình duyệt không hỗ trợ Web Serial — dùng Chrome/Edge, hoặc gõ UID thủ công.';
+            return;
+        }
+
+        let reading = false;
+
+        const setUid = (uid) => {
+            uidInput.value = uid;
+            uidInput.classList.add('ring-2', 'ring-emerald-400');
+            statusEl.textContent = 'Đã đọc UID ' + uid + ' ✓ — chọn khách rồi bấm Phát thẻ.';
+            setTimeout(() => uidInput.classList.remove('ring-2', 'ring-emerald-400'), 1500);
+        };
+
+        async function startReading(port) {
+            if (reading) return;
+            try { await port.open({ baudRate: 9600 }); } catch (e) { /* InvalidStateError = đã mở sẵn */ }
+            if (!port.readable) {
+                statusEl.textContent = 'Mở cổng thất bại — hãy ĐÓNG Arduino Serial Monitor / bridge (đang giữ cổng COM) rồi thử lại.';
+                return;
+            }
+            reading = true;
+            btn.textContent = 'Đang đọc thẻ ●';
+            btn.disabled = true;
+            statusEl.textContent = 'Đã kết nối đầu đọc — quẹt thẻ...';
+            try {
+                const decoder = new TextDecoderStream();
+                port.readable.pipeTo(decoder.writable).catch(() => {});
+                const reader = decoder.readable.getReader();
+                let buf = '';
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buf += value;
+                    let i;
+                    while ((i = buf.indexOf('\n')) >= 0) {
+                        const line = buf.slice(0, i).trim();
+                        buf = buf.slice(i + 1);
+                        if (line.startsWith('UID:')) setUid(line.slice(4).trim().toUpperCase());
+                    }
+                }
+            } catch (e) {
+                statusEl.textContent = 'Mất kết nối đầu đọc: ' + e.message;
+            }
+            reading = false;
+            btn.disabled = false;
+            btn.textContent = 'Kết nối đầu đọc';
+        }
+
+        // Tự kết nối lại đầu đọc ĐÃ cấp quyền (khi tải trang).
+        navigator.serial.getPorts().then((ports) => {
+            if (ports.length && !reading) startReading(ports[0]);
+        }).catch(() => {});
+
+        // Tự kết nối khi CẮM USB (thiết bị đã từng cấp quyền).
+        navigator.serial.addEventListener('connect', (e) => { if (!reading) startReading(e.target); });
+        navigator.serial.addEventListener('disconnect', () => {
+            reading = false; btn.disabled = false; btn.textContent = 'Kết nối đầu đọc';
+            statusEl.textContent = 'Đầu đọc đã rút. Cắm lại sẽ tự kết nối.';
+        });
+
+        // Bấm: ưu tiên dùng lại cổng ĐÃ cấp quyền (không hiện hộp thoại); chưa có thì mới xin chọn.
+        btn.addEventListener('click', async () => {
+            try {
+                const granted = await navigator.serial.getPorts();
+                const port = granted.length ? granted[0] : await navigator.serial.requestPort();
+                startReading(port);
+            } catch (e) {
+                statusEl.textContent = (e && e.name === 'NotFoundError')
+                    ? 'Bạn chưa chọn cổng — bấm lại, CLICK dòng USB-SERIAL (COMx) rồi bấm nút "Kết nối" trong hộp thoại.'
+                    : 'Không kết nối được: ' + ((e && e.message) || e);
+            }
+        });
+    })();
+
+    // ===== B) AUTOCOMPLETE khách đủ điều kiện =====
     (() => {
         const wrap = document.getElementById('kh-ac');
         const input = document.getElementById('kh-search');
