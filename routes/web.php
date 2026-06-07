@@ -200,30 +200,26 @@ Route::middleware(['auth.staff'])->group(function () {
         Route::resource('supplier',   SupplierController::class)->except(['show']);
 
         // ── Phiếu nhập kho ──────────────────────────────────────────────────
-        // Xem danh sách & chi tiết: chỉ cần inventory.manage
-        Route::get('/import',      [ImportController::class, 'index'])->name('import.index');
-        Route::get('/import/{id}', [ImportController::class, 'show'] )->name('import.show');
-        // Lập phiếu: cần import.create (quản lý chi nhánh, hoặc NV được cấp thêm)
+        Route::get('/import', [ImportController::class, 'index'])->name('import.index');
+        // QUAN TRỌNG: route cố định (create) phải khai báo TRƯỚC route động ({id})
         Route::middleware('perm:import.create')->group(function () {
             Route::get('/import/create', [ImportController::class, 'create'])->name('import.create');
             Route::post('/import',       [ImportController::class, 'store'] )->name('import.store');
         });
-        // Duyệt / hủy phiếu: cần import.approve (chỉ quản lý chi nhánh mặc định)
+        Route::get('/import/{id}', [ImportController::class, 'show'])->name('import.show');
         Route::middleware('perm:import.approve')->group(function () {
             Route::put('/import/{id}/approve', [ImportController::class, 'approve'])->name('import.approve');
             Route::put('/import/{id}/cancel',  [ImportController::class, 'cancel'] )->name('import.cancel');
         });
 
         // ── Phiếu kiểm kê ───────────────────────────────────────────────────
-        // Xem danh sách & chi tiết: chỉ cần inventory.manage
-        Route::get('/stockcheck',      [StockCheckController::class, 'index'])->name('stockcheck.index');
-        Route::get('/stockcheck/{id}', [StockCheckController::class, 'show'] )->name('stockcheck.show');
-        // Lập phiếu: cần stockcheck.create
+        Route::get('/stockcheck', [StockCheckController::class, 'index'])->name('stockcheck.index');
+        // QUAN TRỌNG: route cố định (create) phải khai báo TRƯỚC route động ({id})
         Route::middleware('perm:stockcheck.create')->group(function () {
             Route::get('/stockcheck/create', [StockCheckController::class, 'create'])->name('stockcheck.create');
             Route::post('/stockcheck',       [StockCheckController::class, 'store'] )->name('stockcheck.store');
         });
-        // Xác nhận / hủy phiếu: cần stockcheck.approve
+        Route::get('/stockcheck/{id}', [StockCheckController::class, 'show'])->name('stockcheck.show');
         Route::middleware('perm:stockcheck.approve')->group(function () {
             Route::put('/stockcheck/{id}/confirm', [StockCheckController::class, 'confirm'])->name('stockcheck.confirm');
             Route::put('/stockcheck/{id}/cancel',  [StockCheckController::class, 'cancel'] )->name('stockcheck.cancel');
