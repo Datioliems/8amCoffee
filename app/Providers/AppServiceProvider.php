@@ -37,11 +37,29 @@ class AppServiceProvider extends ServiceProvider
         // (hiển thị dạng card trong sidebar giỏ hàng, kể cả trang quét QR/landing).
         View::composer('layouts.customer', function ($view) {
             $codes = (array) session('customer_orders', []);
-            $view->with('cartOrders', empty($codes) ? collect()
-                : Order::with(['chiTietOrders.mon', 'chiTietOrders.options'])
-                    ->whereIn('ma_order', $codes)
-                    ->orderByDesc('ngay_order')->orderByDesc('gio_order')
-                    ->get());
+            if (empty($codes)) {
+                $view->with('cartOrders', collect());
+                return;
+            }
+
+            $orders = Order::with(['chiTietOrders.mon', 'chiTietOrders.options'])
+                ->whereIn('ma_order', $codes)
+                ->orderByDesc('ngay_order')->orderByDesc('gio_order')
+                ->get();
+
+            // Dọn session: xoá ID các đơn đã bị purge khỏi DB.
+            $existingIds = $orders->pluck('ma_order')->all();
+            $validCodes  = array_values(array_intersect($codes, $existingIds));
+            if (count($validCodes) !== count($codes)) {
+                session()->put('customer_orders', $validCodes);
+            }
+
+            // Ẩn đơn dang_chon chưa có món nào — khách mới quét QR,
+            // chưa thêm gì vào giỏ, không nên hiện thẻ "Chưa có món. 0đ".
+            $view->with('cartOrders', $orders->filter(
+                fn ($o) => $o->trang_thai !== 'dang_chon'
+                        || $o->chiTietOrders->isNotEmpty()
+            ));
         });
     }
 }
