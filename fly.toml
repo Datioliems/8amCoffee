@@ -1,36 +1,40 @@
-# fly.toml — 8AM Coffee deploy config
-# Docs: https://fly.io/docs/reference/configuration/
+# fly.toml app configuration file generated for 8amcoffee on 2026-06-07T10:23:11Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
-app            = "8am-coffee"     # đổi thành tên app duy nhất của bạn trên Fly
-primary_region = "sin"            # Singapore — gần Việt Nam nhất
+app = '8amcoffee'
+primary_region = 'sin'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  PORT      = "8080"
-  APP_ENV   = "production"
-  APP_DEBUG = "false"
+  APP_DEBUG = 'false'
+  APP_ENV = 'production'
+  PORT = '8080'
 
 [http_service]
-  internal_port        = 8080
-  force_https          = true
-  auto_stop_machines   = true
-  auto_start_machines  = true
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
   min_machines_running = 0
+
   [http_service.concurrency]
-    type       = "requests"
-    soft_limit = 100
+    type = 'requests'
     hard_limit = 150
+    soft_limit = 100
 
   [[http_service.checks]]
-    grace_period = "40s"
-    interval     = "20s"
-    method       = "GET"
-    path         = "/login"
-    timeout      = "10s"
+    interval = '20s'
+    timeout = '10s'
+    grace_period = '40s'
+    method = 'GET'
+    path = '/login'
 
 [[vm]]
-  memory   = "512mb"
-  cpu_kind = "shared"
-  cpus     = 1
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
+  memory_mb = 256
