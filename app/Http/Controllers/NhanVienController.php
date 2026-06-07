@@ -298,7 +298,7 @@ class NhanVienController extends Controller
         NhatKyHanhDong::ghi('vo_hieu_hoa_tai_khoan', 'tai_khoan', $maTaiKhoan,
             "Vô hiệu hoá tài khoản {$maTaiKhoan} ({$acc->ten_nv})");
 
-        return back()->with('success', "Đã vô hiệu hoá tài khoản "{$acc->ten_tk}" ({$acc->ten_nv}). Tài khoản không thể đăng nhập cho đến khi được kích hoạt lại.");
+        return back()->with('success', "Đã vô hiệu hoá tài khoản \"{$acc->ten_tk}\" ({$acc->ten_nv}). Tài khoản không thể đăng nhập cho đến khi được kích hoạt lại.");
     }
 
     /** Xoá tài khoản bị TẮT HOÀN TOÀN — mọi tài khoản chỉ được vô hiệu hoá. */
