@@ -1,162 +1,393 @@
-# ☕ 8AM Coffee & Roastery — Hệ thống quản lý quán & đặt món
+# ☕ 8AM Coffee & Roastery — Hệ thống quản lý chuỗi quán & đặt món QR
+
 **Nhóm 29 | TTCN | Học viện Ngân hàng**
 
-Ứng dụng Laravel 11 quản lý chuỗi quán cà phê: đặt món qua QR, quản lý đơn,
-kho hàng, thực đơn, **sơ đồ bàn 3D (Three.js)** và **quản lý đa chi nhánh**.
+> Nền tảng quản lý toàn diện cho chuỗi quán cà phê đa chi nhánh: khách đặt món qua mã QR trên bàn, nhân viên quản lý đơn hàng trên sơ đồ bàn 3D, tích hợp kho hàng — thanh toán VNPay — thẻ thành viên RFID — phân tích dữ liệu AI.
 
 ---
 
-## 1. Yêu cầu môi trường
+## Mục lục
 
-| Thành phần | Phiên bản đã kiểm thử |
+1. [Giới thiệu sản phẩm](#1-giới-thiệu-sản-phẩm)
+2. [Công nghệ nổi bật](#2-công-nghệ-nổi-bật)
+3. [Yêu cầu môi trường](#3-yêu-cầu-môi-trường)
+4. [Cài đặt từ đầu](#4-cài-đặt-từ-đầu)
+5. [Chạy ứng dụng](#5-chạy-ứng-dụng)
+6. [Tài khoản mẫu](#6-tài-khoản-mẫu)
+7. [Kiểm thử thủ công](#7-kiểm-thử-thủ-công)
+8. [Cấu trúc dự án](#8-cấu-trúc-dự-án)
+9. [Lệnh hữu ích](#9-lệnh-hữu-ích)
+
+---
+
+## 1. Giới thiệu sản phẩm
+
+8AM Coffee & Roastery là hệ thống quản lý vận hành chuỗi quán cà phê, xây dựng trên **Laravel 11**, phục vụ hai nhóm người dùng chính:
+
+### Phía khách hàng
+
+| Tính năng | Mô tả |
+|-----------|-------|
+| **Đặt món qua QR** | Quét mã QR trên bàn → chọn món → gửi đơn — không cần cài app, không cần đăng nhập |
+| **Sơ đồ bàn 3D** | Xem trạng thái bàn trống / có khách theo mô hình không gian 3D tương tác (Three.js + GLB) |
+| **Đổi bàn** | Gửi yêu cầu chuyển bàn — nhân viên duyệt, toàn bộ đơn chuyển sang bàn mới tức thì |
+| **Theo dõi đơn hàng** | Xem tiến trình đơn cập nhật liên tục qua polling JSON |
+| **Gợi ý dùng kèm** | Gợi ý món hay đặt cùng nhau dựa trên lịch sử đơn thật (Market Basket Analysis) |
+| **Thanh toán VNPay** | Thanh toán online qua cổng VNPAY — hỗ trợ thẻ nội địa & quốc tế |
+
+### Phía nhân viên & quản lý
+
+| Tính năng | Mô tả |
+|-----------|-------|
+| **Bảng đơn hàng** | Xem, xác nhận, cập nhật trạng thái đơn; lọc theo trạng thái và ngày |
+| **Sơ đồ bàn 3D nhân viên** | Kéo-thả sắp xếp bàn trên mô hình 3D, hiển thị số đơn hoạt động từng bàn |
+| **Quản lý kho** | Phiếu nhập kho, phiếu kiểm kê, cảnh báo nguyên liệu sắp hết; trigger tự trừ kho khi xác nhận đơn |
+| **Thực đơn** | CRUD món, danh mục, topping; ẩn món hết nguyên liệu tự động |
+| **Thẻ thành viên RFID** | Phát thẻ, tích điểm, đổi điểm qua đầu đọc Arduino/ESP32; phân hạng Thường / Bạc / Vàng / Kim cương |
+| **Phân tích dữ liệu** | Dự báo doanh thu (hồi quy tuyến tính), luật kết hợp sản phẩm, biểu đồ Chart.js |
+| **Phát hiện bất thường QR** | Phát hiện quét QR spam / bot bằng engine luật + mô hình ML Python; điểm rủi ro 0–100 |
+| **Phân quyền chi tiết** | Role-based (superadmin / admin / nhan_vien) + fine-grained override từng tài khoản |
+| **Nhật ký kiểm toán** | Ghi log toàn bộ hành động nghiệp vụ, đăng nhập, email gửi đi |
+| **Đa chi nhánh** | Superadmin chuyển chi nhánh tức thì; dữ liệu cô lập hoàn toàn theo chi nhánh |
+
+---
+
+## 2. Công nghệ nổi bật
+
+### Backend — Laravel 11 (PHP 8.2)
+
+| Công nghệ | Ứng dụng trong dự án |
+|-----------|----------------------|
+| **Eloquent ORM** | 34 model, quan hệ đa cấp (`hasMany`, `belongsToMany`, morphic), soft delete, Eager Loading chống N+1 |
+| **Service Layer** | 13 service class — business logic tách khỏi controller (thin controller pattern) |
+| **Middleware chain** | `AuthMiddleware → RoleMiddleware → PermissionMiddleware → ArduinoDeviceAuth` |
+| **Fine-grained Permissions** | `config/permissions.php` + `Perm::effectiveFor()` — override quyền từng tài khoản, không phụ thuộc package ngoài |
+| **2FA OTP Email** | Nhân viên đăng nhập bắt buộc xác minh OTP gửi qua email; model `TaiKhoan` lưu `otp_code`, `otp_expires_at` |
+| **PII Encryption** | Trường nhạy cảm (tên, SĐT, địa chỉ khách) mã hoá AES-256-CBC tự động qua Eloquent Cast `EncryptedString`; fault-tolerant với plaintext cũ |
+| **Blind Index (HMAC-SHA256)** | `Pii::phoneHash()` — tìm kiếm theo SĐT mà không cần giải mã; pepper từ `PII_PEPPER` env |
+| **DB Transaction + Row Lock** | `DB::transaction()` + `lockForUpdate()` trên toàn bộ thao tác tích điểm / đổi điểm / phát thẻ — ngăn race condition |
+| **Database View & Trigger** | `V_TRANG_THAI_KHO` (trạng thái tồn kho tổng hợp), `TR_DEDUCT_STOCK` (tự trừ kho khi xác nhận đơn) |
+| **Audit Logging** | `NhatKyHanhDong::ghi()` ghi nhật ký mọi thao tác; `NhatKyDangNhap` lưu lịch sử đăng nhập |
+| **Config-driven Loyalty Tiers** | Hạng thành viên cấu hình động trong DB (`CauHinhHang`), không hardcode |
+
+### Frontend
+
+| Công nghệ | Phiên bản | Ứng dụng |
+|-----------|-----------|----------|
+| **Three.js** | 0.184 | Sơ đồ bàn 3D — load `.glb` theo chi nhánh, render bàn theo màu trạng thái, xoay/zoom tự do |
+| **GLTFLoader + Draco** | bundled | Giải nén mô hình 3D tối ưu cho web |
+| **Tailwind CSS** | v4 | Toàn bộ giao diện (mobile-first, accent `#E82C2A`) |
+| **Alpine.js** | v3 | Modal, dropdown, form validation — reactive mà không cần build thêm |
+| **Chart.js** | v4 | Biểu đồ doanh thu, đường dự báo, thống kê phân tích |
+| **Vite + Laravel Plugin** | v1 | Build pipeline: CSS purge + JS bundle + asset fingerprint |
+| **@gltf-transform/core** | v4 | Tối ưu / đóng gói file `.glb` trước khi đưa vào `public/models/` |
+
+### Tích hợp phần cứng & dịch vụ ngoài
+
+| Tích hợp | Chi tiết kỹ thuật |
+|----------|-------------------|
+| **Arduino / ESP32 + RFID** | REST API với xác thực token SHA-256 per-device (`ThietBiArduino`); firmware C++ tại `arduino/`; bridge Node.js giao tiếp Serial → HTTP |
+| **VNPay Gateway v2.1.0** | Tạo URL thanh toán + xác thực IPN callback bằng **HMAC-SHA512**; sandbox & production qua env |
+| **SMTP Email** | Gửi OTP đăng nhập, link kích hoạt tài khoản; tự fallback sang `log` driver khi SMTP chưa cấu hình |
+| **QR Code** | `simplesoftwareio/simple-qrcode` — sinh QR theo bàn, in poster A4 |
+| **Python ML Subprocess** | `ml/predict_qr_anomaly.py` — mô hình phát hiện bất thường, gọi qua `proc_open`, trả kết quả JSON |
+
+### Thuật toán & Phân tích dữ liệu
+
+| Thuật toán | Mô tả |
+|------------|-------|
+| **Market Basket Analysis** | Tính **support / confidence / lift** cho mọi cặp món trong 120 ngày gần nhất; gợi ý dùng kèm tại trang thanh toán khách; dashboard luật kết hợp tại `/phan-tich` |
+| **Hồi quy tuyến tính (Least Squares)** | Dự báo doanh thu 7 ngày tới từ 30 ngày lịch sử; trả về slope, intercept, R², nhãn xu hướng tăng / giảm / ổn định |
+| **Phát hiện bất thường QR (Hybrid)** | Tầng luật (tần suất ≥ 100, đa chi nhánh, non-converting, timing đều đặn, quét đêm) + tầng ML Python; điểm rủi ro 0–100; cảnh báo lưu `ScanAnomalyAlert` |
+
+---
+
+## 3. Yêu cầu môi trường
+
+| Thành phần | Phiên bản |
 |---|---|
-| PHP        | 8.2+ (8.2.12) |
-| Composer   | 2.x |
-| Node.js    | 18+ (đã test 24.15) |
-| npm        | 9+ (đã test 11.12) |
-| MySQL/MariaDB | 8.0+ / 10.4+ |
+| PHP | **8.2+** (đã kiểm thử 8.2.12) |
+| Composer | 2.x |
+| Node.js | **18+** (đã kiểm thử 24.15) |
+| npm | 9+ (đã kiểm thử 11.12) |
+| MySQL / MariaDB | 8.0+ / 10.4+ |
 
-Extension PHP cần bật: `pdo_mysql`, `mbstring`, `openssl`, `fileinfo`, `gd`.
+**PHP extensions cần bật:** `pdo_mysql`, `mbstring`, `openssl`, `fileinfo`, `gd`
+
+> **Windows:** Mở `php.ini`, bỏ dấu `;` trước các dòng `extension=pdo_mysql`, `extension=mbstring`, v.v.
 
 ---
 
-## 2. Cài đặt lần đầu
+## 4. Cài đặt từ đầu
+
+### Bước 1 — Tải source code
 
 ```bash
-# 1) Cài thư viện PHP & JS
+git clone https://github.com/Datioliems/8amCoffee.git
+cd 8amCoffee
+```
+
+### Bước 2 — Cài dependencies
+
+```bash
 composer install
 npm install
-
-# 2) Tạo file cấu hình
-copy .env.example .env        # Windows  (Linux/Mac: cp .env.example .env)
-php artisan key:generate
-
-# 3) Sửa thông tin DB trong .env
-#    DB_DATABASE=8amcoffee
-#    DB_USERNAME=root
-#    DB_PASSWORD=...   (mật khẩu MySQL của bạn)
 ```
 
-Tạo database rỗng tên `8amcoffee` trong MySQL trước khi migrate:
-
-```sql
-CREATE DATABASE 8amcoffee CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
+### Bước 3 — Tạo file cấu hình
 
 ```bash
-# 4) Tạo bảng + dữ liệu mẫu
-php artisan migrate          # chạy toàn bộ migration
-php artisan db:seed          # nạp dữ liệu mẫu + tài khoản (idempotent)
+# Windows
+copy .env.example .env
 
-# 5) Build giao diện (CSS/JS, gồm cả module 3D)
+# Linux / macOS
+cp .env.example .env
+
+php artisan key:generate
+```
+
+### Bước 4 — Cấu hình database trong `.env`
+
+Mở `.env` và sửa các dòng sau:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=8amcoffee
+DB_USERNAME=root
+DB_PASSWORD=YOUR_MYSQL_PASSWORD
+```
+
+Tạo database rỗng trong MySQL:
+
+```sql
+CREATE DATABASE `8amcoffee`
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
+```
+
+### Bước 5 — (Tuỳ chọn) Cấu hình email & thanh toán
+
+```env
+# SMTP — gửi OTP đăng nhập & link kích hoạt tài khoản
+# Nếu bỏ qua, OTP/link sẽ xuất hiện trong storage/logs/laravel.log
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_ENCRYPTION=tls
+MAIL_USERNAME=your@gmail.com
+MAIL_PASSWORD=your_app_password
+MAIL_FROM_ADDRESS=no-reply@8am.coffee
+MAIL_FROM_NAME="8AM Coffee"
+
+# VNPay (chỉ cần nếu test thanh toán online)
+VNPAY_TMN_CODE=YOUR_TMN_CODE
+VNPAY_HASH_SECRET=YOUR_HASH_SECRET
+VNPAY_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNPAY_RETURN_URL="${APP_URL}/payment/vnpay/return"
+
+# PII pepper — bảo vệ hash SĐT khách hàng (chuỗi ngẫu nhiên bất kỳ)
+PII_PEPPER=change_this_to_a_random_32char_string
+```
+
+### Bước 6 — Migrate & Seed dữ liệu mẫu
+
+```bash
+# Tạo toàn bộ bảng
+php artisan migrate
+
+# Nạp dữ liệu mẫu: chi nhánh, tài khoản, menu, tồn kho, bàn, nhà cung cấp
+php artisan db:seed
+```
+
+> **Làm lại từ đầu hoàn toàn** ⚠️ xoá sạch dữ liệu:
+> ```bash
+> php artisan migrate:fresh --seed
+> ```
+
+### Bước 7 — Build giao diện (CSS / JS / 3D)
+
+```bash
 npm run build
 ```
 
-> **Lưu ý:** mỗi khi sửa file trong `resources/js` (vd `showroom.js`, `floorplan.js`)
-> phải chạy lại `npm run build`, hoặc dùng `npm run dev` khi phát triển.
-
 ---
 
-## 3. Chạy ứng dụng
+## 5. Chạy ứng dụng
 
 ```bash
-# Cách 1 — server PHP tích hợp (mặc định cổng 8000)
 php artisan serve
-#  → mở http://localhost:8000
+# → Mở http://localhost:8000
+```
 
-# Cách 2 — phát triển realtime (Vite hot-reload) chạy song song
+**Khi phát triển** — chạy song song hai terminal để có hot-reload:
+
+```bash
+# Terminal 1
 npm run dev
+
+# Terminal 2
 php artisan serve
 ```
 
-Trang đăng nhập nhân viên: **http://localhost:8000/login**
+| URL | Mô tả |
+|-----|-------|
+| `http://localhost:8000/login` | Đăng nhập nhân viên |
+| `http://localhost:8000/dashboard` | Dashboard nhân viên |
+| `http://localhost:8000/order/BAN_B001` | Trang đặt món khách hàng (bàn B001) |
+| `http://localhost:8000/floorplan` | Sơ đồ bàn 3D (nhân viên) |
+| `http://localhost:8000/phan-tich` | Phân tích dữ liệu & luật kết hợp |
 
 ---
 
-## 4. Tài khoản mẫu
+## 6. Tài khoản mẫu
 
-| Tên đăng nhập | Mật khẩu   | Vai trò (`chuc_vu`) | Chi nhánh | Phạm vi |
+| Tên đăng nhập | Mật khẩu | Vai trò | Chi nhánh | Phạm vi |
 |---|---|---|---|---|
-| `superadmin`  | `Admin@123` | **admin** (chủ chuỗi) | mọi CN | Toàn quyền + đổi chi nhánh + quản lý tài khoản |
-| `admin_8am`   | `Admin@123` | quan_ly | CN001 | Quản lý CN001 |
-| `manager_hcm` | `Admin@123` | quan_ly | CN002 | Quản lý CN002 |
-| `bartender01` | `Admin@123` | bartender | CN001 | Pha chế |
-| `staff01`     | `Admin@123` | nhan_vien | CN001 | Phục vụ |
+| `superadmin` | `Admin@123` | superadmin | CN001 | Toàn quyền — đổi chi nhánh, quản lý mọi tài khoản |
+| `admin_8am` | `Admin@123` | admin | CN001 | Quản lý toàn bộ CN001 |
+| `bartender01` | `Admin@123` | nhan_vien | CN001 | Pha chế |
+| `staff01` | `Admin@123` | nhan_vien | CN001 | Phục vụ |
 
-> Đăng nhập `superadmin` để thấy **bộ chọn chi nhánh** ở sidebar và menu
-> **"Nhân viên & quyền"** (`/nhan-vien`) để tạo tài khoản, phân quyền, khoá tài khoản.
+> **2FA OTP:** Mặc định hệ thống gửi OTP qua email khi đăng nhập. Nếu chưa cấu hình SMTP, mở `storage/logs/laravel.log` và tìm dòng `Subject: Mã OTP` để lấy mã.
 
-### Quy tắc phân quyền (trang `/nhan-vien`)
-- **admin**: tạo/sửa tài khoản ở **mọi** chi nhánh, gán **mọi** vai trò, chuyển nhân viên giữa các chi nhánh.
-- **quan_ly**: chỉ thao tác trong chi nhánh của mình, chỉ gán vai trò *Pha chế / Phục vụ*; không sửa được admin/quản lý.
-- Không ai tự sửa/khoá tài khoản đang đăng nhập. Khoá (`inactive`) chặn đăng nhập ngay.
+### Phân quyền chi tiết
 
----
-
-## 5. Sơ đồ bàn 3D & đa chi nhánh
-
-- Map 3D nhúng trong menu khách (Three.js + GLTFLoader + Draco). File model ở
-  `public/models/`, chọn theo cột `CHI_NHANH.model_3d`:
-  - **CN001** → `cafe_opt.glb` (mô hình quán đầy đủ, bàn `BAN_B001…B017`)
-  - **CN002** → `cafe_CN002.glb` (map giả lập, bàn `BAN_B101…B106`)
-- Khách bấm vào bàn → xem trạng thái (trống / có khách / đặt trước / đang chọn) +
-  số ghế + ảnh bàn, có thể đổi bàn (chuyển toàn bộ đơn sang bàn mới).
-- Nhân viên upload ảnh từng bàn ở **Bàn & QR** (`/ban`).
-- Tạo map giả lập cho chi nhánh mới (không cần Blender): `node build_cn002_map.mjs`.
+- **superadmin** — bypass mọi kiểm tra quyền; chuyển chi nhánh tức thì qua bộ chọn ở sidebar.
+- **admin** — tạo / sửa tài khoản ở **mọi chi nhánh**, gán mọi vai trò.
+- **nhan_vien / bartender** — chỉ thao tác trong chi nhánh của mình; không sửa được tài khoản quản lý.
+- Không ai có thể tự khoá tài khoản đang đăng nhập.
+- **Xoá tài khoản bị vô hiệu hoá:** hệ thống không cho xoá — chỉ có thể chuyển sang `inactive` để giữ toàn bộ lịch sử.
 
 ---
 
-## 6. Thay đổi Database trong phiên phát triển này
+## 7. Kiểm thử thủ công
 
-Migration **mới** (so với schema gốc `2026_05_27..._create_8am_coffee_mysql_schema`):
+### 7.1 Luồng đặt món (khách hàng)
 
-| Migration | Bảng | Thay đổi |
-|---|---|---|
-| `2026_06_01_000000_add_so_ghe_to_ban` | `BAN` | thêm cột `so_ghe` (số ghế mỗi bàn) |
-| `2026_05_31_000006_allow_takeaway_orders_without_table` | `ORDERS` | `ma_ban` cho phép `NULL` (đơn mang đi) |
-| `2026_06_01_000001_add_line_id_to_chi_tiet_order` | `CHI_TIET_ORDER` | thêm `line_id` (tách dòng món trùng khác topping) |
-| `2026_06_02_000000_add_anh_to_ban` | `BAN` | thêm cột `anh` (ảnh bàn nhân viên tải lên) |
-| `2026_06_03_000000_add_model_3d_to_chi_nhanh` | `CHI_NHANH` | thêm cột `model_3d` (file GLB map từng chi nhánh) |
+1. Đăng nhập `superadmin` → **Bàn & QR** (`/ban`) → click **Xem QR** bàn `BAN_B001`.
+2. Mở URL `http://localhost:8000/order/BAN_B001` trong tab mới (giả lập khách quét QR).
+3. Chọn món → **Thêm vào giỏ** → kiểm tra gợi ý dùng kèm → **Gửi đơn**.
+4. Xác nhận đơn xuất hiện ở `/orders` phía nhân viên.
 
-Seeder mới/cập nhật (đều **idempotent** — chạy lại an toàn):
-- `SuperAdminSeeder` — tài khoản `superadmin`.
-- `ChiNhanh2DemoSeeder` — chi nhánh **CN002** + 6 bàn (`B101…B106`) + tài khoản `manager_hcm`.
-- `BanSeeder` — 17 bàn + số ghế.
+### 7.2 Xử lý đơn hàng (nhân viên)
 
-Tất cả đã nối vào `DatabaseSeeder`, nên chỉ cần:
+1. Đăng nhập `admin_8am` → **Đơn hàng** (`/orders`).
+2. Xác nhận đơn → cập nhật trạng thái theo luồng:
+   ```
+   cho_xac_nhan → da_xac_nhan → dang_pha_che → da_phuc_vu → hoan_thanh
+   ```
+3. Thanh toán: click **Thanh toán** → chọn tiền mặt hoặc VNPay sandbox.
+
+### 7.3 Gợi ý dùng kèm (Market Basket Analysis)
+
+1. Hoàn thành ít nhất **3–5 đơn hàng** với các tổ hợp món khác nhau.
+2. Mở giỏ hàng khách — mục **"Gợi ý dùng kèm"** xuất hiện dưới dạng pill button.
+3. Xem bảng luật kết hợp đầy đủ tại `/phan-tich` (cần quyền `analytics.view`).
+
+### 7.4 Kho hàng & nhập hàng
+
+1. **Kho hàng** (`/inventory`) → xem danh sách nguyên liệu + cảnh báo sắp hết.
+2. **Phiếu nhập kho** (`/inventory/import/create`) → chọn nguyên liệu, nhập số lượng → Lưu → Duyệt.
+3. **Phiếu kiểm kê** (`/inventory/stockcheck/create`) → nhập số lượng thực tế → Xác nhận.
+
+### 7.5 Phân quyền & vòng đời tài khoản nhân viên
+
+1. Đăng nhập `superadmin` → **Nhân viên & quyền** (`/nhan-vien`).
+2. **Tạo tài khoản mới** → điền email → link kích hoạt gửi qua mail (hoặc xem log).
+3. **Vô hiệu hoá**: click nút amber "Vô hiệu hoá" — tài khoản chuyển `inactive`, không thể đăng nhập.
+4. **Giáng cấp** (ví dụ admin → nhan_vien): popup xác nhận hiện ra; sau xác nhận tài khoản tự vô hiệu hoá.
+5. **Thử xoá**: hệ thống chặn — trả về thông báo lỗi, không xoá dữ liệu.
+
+### 7.6 Sơ đồ bàn 3D
+
+1. Đăng nhập nhân viên → **Sơ đồ bàn** (`/floorplan`).
+2. Xoay, zoom, click bàn để xem trạng thái + số đơn đang chạy.
+3. Phía khách: vào `/order/BAN_B001` → tab **Chọn bàn** → tương tác mô hình 3D.
+
+### 7.7 Thẻ thành viên RFID (không cần phần cứng)
+
+1. **Thẻ thành viên** (`/the-thanh-vien`) → nhập SĐT khách đủ điều kiện → **Phát thẻ**.
+2. Xem lịch sử giao dịch điểm, điều chỉnh điểm thủ công, thay đổi trạng thái thẻ.
+3. Cấu hình hạng thành viên tại **Cài đặt hạng** (`/the-thanh-vien/cau-hinh-hang`).
+
+### 7.8 Nhật ký & kiểm toán
+
+| Trang | Mô tả |
+|-------|-------|
+| `/nhat-ky-hanh-dong` | Toàn bộ thao tác nghiệp vụ (tạo đơn, duyệt phiếu, đổi quyền…) |
+| `/nhat-ky-dang-nhap` | Lịch sử đăng nhập + IP + user agent |
+| `/scan-anomaly-alerts` | Cảnh báo quét QR bất thường |
+| `/nhat-ky-email` | Trạng thái email gửi đi (OTP, kích hoạt, v.v.) |
+
+---
+
+## 8. Cấu trúc dự án
+
+```
+app/
+├── Http/
+│   ├── Controllers/                  ← 30 controller (thin — gọi Service)
+│   │   └── Api/ArduinoController.php ← REST API cho thiết bị ESP32/Arduino
+│   └── Middleware/                   ← Auth, Role, Permission, ArduinoDeviceAuth
+├── Models/                           ← 34 Eloquent model
+├── Services/
+│   ├── AnalyticsService.php          ← Market Basket Analysis + Linear Regression
+│   ├── LoyaltyService.php            ← RFID card, tích điểm, đổi điểm, hạng
+│   ├── VnpayService.php              ← VNPay HMAC-SHA512
+│   ├── OrderService.php              ← Vòng đời đơn hàng
+│   ├── QrScanAnomalyDetectionService.php  ← Rule + ML hybrid anomaly
+│   ├── QrAnomalyMlService.php        ← Python subprocess ML model
+│   └── ...                           ← 13 service tổng cộng
+└── Support/
+    ├── Perm.php                      ← Fine-grained permission engine
+    └── Pii.php                       ← AES encryption + HMAC blind index
+arduino/
+├── 8am_rfid_reader.ino               ← Firmware ESP32 đọc thẻ RFID
+├── 8am_uno_rfid_lcd.ino              ← Firmware với màn hình LCD 2004
+└── bridge/8am-rfid-bridge.mjs        ← Node.js bridge: Serial → HTTP API
+ml/
+└── predict_qr_anomaly.py             ← Mô hình ML phát hiện bất thường QR
+resources/
+├── js/
+│   ├── showroom.js                   ← Three.js viewer 3D (trang đặt món khách)
+│   └── floorplan.js                  ← Three.js sơ đồ bàn (nhân viên)
+└── views/
+    ├── layouts/                      ← app.blade.php (staff), customer.blade.php
+    ├── customer/                     ← Giao diện đặt món QR
+    └── staff/                        ← Dashboard, orders, inventory, analytics…
+public/models/                        ← File .glb (mô hình 3D từng chi nhánh)
+database/
+├── migrations/                       ← 33+ migration incremental
+└── seeders/                          ← 15 seeder idempotent
+config/
+└── permissions.php                   ← Bảng quyền toàn hệ thống
+```
+
+---
+
+## 9. Lệnh hữu ích
 
 ```bash
-php artisan migrate      # nếu DB cũ chưa có các cột trên
-php artisan db:seed      # bổ sung superadmin + CN002 (không ghi đè dữ liệu cũ)
-```
+# Phát triển
+php artisan serve                     # Khởi động server :8000
+npm run dev                           # Vite dev server (hot-reload CSS/JS)
+npm run build                         # Build production assets
 
-> Làm lại từ đầu hoàn toàn: `php artisan migrate:fresh --seed` (⚠️ xoá sạch dữ liệu).
+# Database
+php artisan migrate                   # Áp dụng migration mới
+php artisan migrate:fresh --seed      # Reset toàn bộ DB + seed lại  ⚠️ xoá hết dữ liệu
+php artisan db:seed                   # Chỉ chạy seeder (không reset bảng)
+php artisan migrate:status            # Kiểm tra trạng thái migration
 
----
-
-## 7. Cấu trúc thư mục chính
-
-```
-app/Http/Controllers/
-  NhanVienController.php    ← quản lý tài khoản & phân quyền (mới)
-  ChiNhanhController.php    ← super-admin đổi chi nhánh (mới)
-  BanController.php         ← sơ đồ bàn, đổi bàn, upload ảnh bàn
-resources/js/
-  showroom.js              ← viewer 3D trong menu khách
-  floorplan.js             ← sơ đồ bàn cho nhân viên
-resources/views/staff/
-  nhanvien-list.blade.php  ← UI quản lý nhân viên (mới)
-public/models/             ← các file .glb (map 3D)
-build_cn002_map.mjs        ← script tạo map giả lập cho chi nhánh mới
+# Bảo trì & debug
+php artisan optimize:clear            # Xoá cache config / route / view
+php artisan route:list                # Xem danh sách route
+php artisan config:cache              # Cache config (production)
+php artisan route:cache               # Cache route (production)
 ```
 
 ---
 
-## 8. Lệnh hữu ích
-
-```bash
-php artisan route:list            # liệt kê route
-php artisan migrate:status        # trạng thái migration
-php artisan optimize:clear        # xoá cache config/route/view
-npm run build                     # build asset production
-```
+<p align="center">Made with ☕ by <strong>Nhóm 29 — Học viện Ngân hàng</strong></p>
