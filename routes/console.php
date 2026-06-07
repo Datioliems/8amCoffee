@@ -10,6 +10,10 @@ Artisan::command('about-8am', function () {
 // Mỗi ngày dọn tài khoản nhân viên chưa kích hoạt (email không tồn tại / chưa xác nhận).
 Schedule::command('accounts:purge-unconfirmed')->dailyAt('03:00');
 
+// ── TỰ ĐỘNG ẨN/HIỆN MÓN THEO TỒN KHO ──────────────────────────────────────
+// Mỗi 5 phút: ẩn mon active hết kho, hiện lại mon auto-ẩn khi kho đủ.
+Schedule::command('menu:sync-stock-status')->everyFiveMinutes();
+
 // ── PHÁT HIỆN QR BẤT THƯỜNG (ML) ──────────────────────────────────────────
 // Phân tích mỗi 5 phút — rule-based (luôn chạy) + ML (khi đã có model).
 Schedule::command('scan:analyze-anomalies --minutes=5')->everyFiveMinutes();

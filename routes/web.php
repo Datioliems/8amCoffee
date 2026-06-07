@@ -37,6 +37,7 @@ Route::prefix('order')->name('customer.')->group(function () {
 
     // Sơ đồ bàn 3D cho khách (public, chi nhánh suy từ bàn)
     Route::get('/{ma_ban}/tables',             [BanController::class,   'apiTablesByBan']   )->name('tables');
+    Route::get('/{ma_ban}/move-status',        [BanController::class,   'moveStatus']        )->name('moveStatus');
     Route::post('/{ma_ban}/move/{to}',         [BanController::class,   'moveByBan']        )->name('move');
 });
 

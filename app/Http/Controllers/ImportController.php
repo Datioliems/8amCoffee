@@ -16,7 +16,7 @@ class ImportController extends Controller
 
     public function index()
     {
-        $imports = PhieuNhapKho::with('nhaCungCap')
+        $imports = PhieuNhapKho::with(['nhaCungCap', 'nhanVien'])
             ->where('ma_chi_nhanh', session('ma_chi_nhanh'))
             ->orderByDesc('ngay_nk')
             ->paginate(15);
@@ -31,7 +31,7 @@ class ImportController extends Controller
 
         // Lịch sử: mỗi NCC đã từng nhập những NL nào → dùng để lọc dropdown
         $nccNguyenLieu = DB::table('CHI_TIET_NHAP_KHO as ctnk')
-            ->join('PHIEU_NHAP_KHO as pnk', 'pnk.id', '=', 'ctnk.phieu_nhap_kho_id')
+            ->join('PHIEU_NHAP_KHO as pnk', 'pnk.ma_pnk', '=', 'ctnk.ma_pnk')
             ->select('pnk.ma_ncc', 'ctnk.ma_nl')
             ->groupBy('pnk.ma_ncc', 'ctnk.ma_nl')
             ->get()
@@ -69,7 +69,7 @@ class ImportController extends Controller
 
     public function show(string $id)
     {
-        $import = PhieuNhapKho::with(['nhaCungCap','chiTietNhapKhos.nguyenLieu'])->findOrFail($id);
+        $import = PhieuNhapKho::with(['nhaCungCap', 'nhanVien', 'chiTietNhapKhos.nguyenLieu'])->findOrFail($id);
         return view('inventory.import-detail', compact('import'));
     }
 

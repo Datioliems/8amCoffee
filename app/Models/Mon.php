@@ -12,7 +12,7 @@ class Mon extends Model
     protected $keyType    = 'string';
     public $timestamps    = false;
 
-    protected $fillable = ['ma_mon','ten_mon','don_gia','mo_ta','hinh_anh','ma_danh_muc','trang_thai'];
+    protected $fillable = ['ma_mon','ten_mon','don_gia','mo_ta','hinh_anh','ma_danh_muc','trang_thai','tu_dong_an'];
 
     public function getImageUrlAttribute(): ?string
     {

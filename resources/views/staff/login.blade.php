@@ -19,7 +19,7 @@
             <img src="{{ \App\Support\Cdn::url('images/logo8am.jpg') }}" alt="8AM Coffee" class="h-16 w-16 rounded-2xl object-cover ring-1 ring-white/20">
             <div class="max-w-xl">
                 <p class="text-xs uppercase tracking-[0.2em] text-white/65">vận hành 8am</p>
-                <h1 class="mt-4 text-6xl font-semibold leading-none" style="font-family: Chivo, Inter, sans-serif;">Quản lý ca sáng rõ ràng hơn.</h1>
+                <h1 class="mt-4 text-6xl font-semibold leading-none" style="font-family: Chivo, Inter, sans-serif;">Quản lý cửa hàng theo cách tiện lợi nhất.</h1>
                 <p class="mt-5 text-base leading-7 text-white/75">Theo dõi đơn hàng, bàn, menu và kho hàng trong một giao diện dành cho vận hành quán.</p>
             </div>
         </div>

@@ -113,6 +113,35 @@ class BanController extends Controller
         return $this->tablesJson($ban->ma_chi_nhanh);
     }
 
+    /**
+     * Khách poll trạng thái yêu cầu đổi bàn của mình (GET, không cần auth).
+     * Trả về: {status: 'pending'|'approved'|'rejected'|'none', ma_ban_moi?: string}
+     */
+    public function moveStatus(string $maBan)
+    {
+        $owned = (array) session('customer_orders', []);
+        if (empty($owned)) {
+            return response()->json(['status' => 'none']);
+        }
+
+        // Lấy yêu cầu gần nhất của đơn thuộc session tại bàn này
+        $req = DB::table('YEU_CAU_DOI_BAN')
+            ->whereIn('ma_order', $owned)
+            ->where('ma_ban_cu', $maBan)
+            ->orderByDesc('thoi_gian_tao')
+            ->first();
+
+        if (! $req) {
+            return response()->json(['status' => 'none']);
+        }
+
+        return match ($req->trang_thai) {
+            'da_duyet' => response()->json(['status' => 'approved', 'ma_ban_moi' => $req->ma_ban_moi]),
+            'tu_choi'  => response()->json(['status' => 'rejected']),
+            default    => response()->json(['status' => 'pending']),  // cho_duyet
+        };
+    }
+
     public function moveByBan(string $maBan, string $to)
     {
         $ban = Ban::findOrFail($maBan);

@@ -22,6 +22,7 @@
                 <tr class="border-b border-gray-100 bg-gray-50">
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-400">Mã phiếu</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-400">Ngày nhập</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-400">Người lập</th>
                     <th class="px-4 py-3 text-left text-xs font-medium text-gray-400">Nhà cung cấp</th>
                     <th class="px-4 py-3 text-right text-xs font-medium text-gray-400">Tổng giá trị</th>
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-400">Trạng thái</th>
@@ -33,6 +34,7 @@
                 <tr class="hover:bg-gray-50">
                     <td class="px-4 py-3 font-mono text-xs">{{ $import->ma_pnk }}</td>
                     <td class="px-4 py-3 text-gray-600">{{ $import->ngay_nk }}</td>
+                    <td class="px-4 py-3 text-gray-700">{{ $import->nhanVien->ten_nv ?? '—' }}</td>
                     <td class="px-4 py-3">{{ $import->nhaCungCap->ten_ncc }}</td>
                     <td class="px-4 py-3 text-right">{{ number_format($import->tong_gia_tri, 0, ',', '.') }}đ</td>
                     <td class="px-4 py-3 text-center">
@@ -69,7 +71,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="px-4 py-8 text-center text-sm text-gray-400">Chưa có phiếu nhập nào</td>
+                    <td colspan="7" class="px-4 py-8 text-center text-sm text-gray-400">Chưa có phiếu nhập nào</td>
                 </tr>
                 @endforelse
             </tbody>

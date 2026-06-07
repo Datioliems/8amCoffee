@@ -1,7 +1,7 @@
 @props(['mon', 'order'])
 @php
     $imgUrl = $mon->image_url;
-    $hetHang = $mon->trang_thai === 'het_hang';
+    $hetHang = $mon->trang_thai === 'het_hang' || ($mon->het_hang_theo_kho ?? false);
     $displayOptions = [
         'temperature' => $mon->options?->where('loai_option', 'temperature')->where('trang_thai', 'active')->pluck('ten_option')->values()->all() ?? [],
         'sweetness' => $mon->options?->where('loai_option', 'sweetness')->where('trang_thai', 'active')->pluck('ten_option')->values()->all() ?? [],

@@ -40,6 +40,7 @@
          data-photo-url="{{ \App\Support\Cdn::url('images/8-AM-Coffee-Roastery-4.jpg') }}"
          data-tables-url="{{ route('customer.tables', $ban->ma_ban) }}"
          data-move-url="{{ route('customer.move', ['ma_ban' => $ban->ma_ban, 'to' => '__TO__']) }}"
+         data-status-url="{{ route('customer.moveStatus', $ban->ma_ban) }}"
          data-redirect-url="{{ route('customer.menu', ['ma_ban' => '__TO__']) }}"
          data-current-table="{{ $ban->ma_ban }}">
         <div id="sr-canvas" class="h-[56vh] w-full lg:col-span-3"></div>

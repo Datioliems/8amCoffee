@@ -26,6 +26,7 @@ function initShowroom(root) {
     const modelUrl    = root.dataset.modelUrl;
     const apiUrl      = root.dataset.tablesUrl;
     const moveTpl     = root.dataset.moveUrl;
+    const statusUrl   = root.dataset.statusUrl || '';
     const redirectTpl = root.dataset.redirectUrl;
     const current     = root.dataset.currentTable;
     const imgBase     = (root.dataset.imgBase || '').replace(/\/$/, '');
@@ -57,6 +58,7 @@ function initShowroom(root) {
     let statusData = {};
     let selected = current || null;
     let modelR = 10, centerX = 0;
+    let pollTimer = null;    // setInterval handle khi đang chờ nhân viên duyệt đổi bàn
     const clock = new THREE.Clock();
 
     const draco = new DRACOLoader();
@@ -160,6 +162,33 @@ function initShowroom(root) {
     }
     setInterval(fetchStatus, 7000);
 
+    // ── Poll trạng thái yêu cầu đổi bàn đang chờ duyệt ────────
+    function startPollApproval() {
+        if (!statusUrl || pollTimer) return;    // chưa có URL hoặc đang poll rồi → bỏ qua
+        pollTimer = setInterval(async () => {
+            try {
+                const r = await fetch(statusUrl, { headers: { Accept: 'application/json' } });
+                if (!r.ok) return;
+                const d = await r.json();
+                if (d.status === 'approved') {
+                    clearInterval(pollTimer); pollTimer = null;
+                    window.location.href = redirectTpl.replace('__TO__', d.ma_ban_moi);
+                } else if (d.status === 'rejected') {
+                    clearInterval(pollTimer); pollTimer = null;
+                    const b = infoEl.querySelector('#sr-confirm');
+                    if (b) {
+                        b.classList.remove('pointer-events-none', 'bg-white/10', 'text-white/40');
+                        b.classList.add('bg-[#E82C2A]', 'text-white');
+                        b.textContent = 'Yêu cầu bị từ chối — thử lại?';
+                        b.onclick = () => showInfo(selected);
+                    }
+                    alert('Nhân viên đã từ chối yêu cầu đổi bàn của bạn.');
+                }
+                // status === 'pending' hoặc 'none' → tiếp tục poll
+            } catch (_) { /* bỏ qua lỗi mạng */ }
+        }, 3000);   // kiểm tra mỗi 3 giây
+    }
+
     // ── raycast lên ghim ───────────────────────────────────────
     const ray = new THREE.Raycaster();
     const ndc = new THREE.Vector2();
@@ -242,10 +271,11 @@ function initShowroom(root) {
             const data = await r.json().catch(() => ({}));
             if (!r.ok || data.ok === false) { throw new Error(data.msg || 'move failed'); }
 
-            // Đơn đã gửi/đã xác nhận → cần nhân viên duyệt: KHÔNG chuyển ngay.
+            // Đơn đã gửi/đã xác nhận → cần nhân viên duyệt: KHÔNG chuyển ngay,
+            // bắt đầu poll để tự redirect khi được duyệt.
             if (data.pending) {
-                alert(data.msg || 'Đã gửi yêu cầu đổi bàn, vui lòng chờ nhân viên duyệt.');
-                if (btn) { btn.textContent = 'Đã gửi yêu cầu ✓'; }
+                if (btn) { btn.textContent = 'Đang chờ nhân viên duyệt… ⏳'; }
+                startPollApproval();
                 return;
             }
             // Giỏ đang chọn (chưa gửi) → đổi ngay.

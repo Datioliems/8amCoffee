@@ -116,23 +116,32 @@ class MenuController extends Controller
 
         $danhMucs = DanhMuc::orderBy('ten_danh_muc')->get();
 
-        return view('staff.menu-list', compact('mons', 'danhMucs', 'stockWarnings'));
+        $autoHiddenCount = Mon::where('trang_thai', 'het_hang')->where('tu_dong_an', 1)->count();
+
+        return view('staff.menu-list', compact('mons', 'danhMucs', 'stockWarnings', 'autoHiddenCount'));
     }
 
     public function outOfStock()
     {
-        $mons = Mon::with(['danhMuc', 'dinhMucs.nguyenLieu.tonKhos'])
+        // 1. Đã tự động ẩn bởi scheduler (het_hang + tu_dong_an = 1)
+        $autoHidden = Mon::with(['danhMuc', 'dinhMucs.nguyenLieu.tonKhos'])
+            ->where('trang_thai', 'het_hang')
+            ->where('tu_dong_an', 1)
+            ->orderBy('ten_mon')
+            ->get();
+        $this->availabilityService->annotate($autoHidden, session('ma_chi_nhanh'));
+
+        // 2. Đang bán nhưng thiếu nguyên liệu tại chi nhánh hiện tại (sẽ tự ẩn sau ≤5 phút)
+        $activeLow = Mon::with(['danhMuc', 'dinhMucs.nguyenLieu.tonKhos'])
             ->where('trang_thai', 'active')
             ->orderBy('ten_mon')
             ->get();
-
-        $this->availabilityService->annotate($mons, session('ma_chi_nhanh'));
-
-        $mons = $mons
+        $this->availabilityService->annotate($activeLow, session('ma_chi_nhanh'));
+        $activeLow = $activeLow
             ->filter(fn($mon) => (bool) ($mon->het_hang_theo_kho ?? false))
             ->values();
 
-        return view('staff.menu-out-of-stock', compact('mons'));
+        return view('staff.menu-out-of-stock', compact('autoHidden', 'activeLow'));
     }
 
     public function create()
@@ -270,6 +279,8 @@ class MenuController extends Controller
         if ($request->hasFile('hinh_anh_file')) {
             $validated['hinh_anh'] = $this->storeMenuImage($request, $mon->ma_mon);
         }
+        // Staff chủ động lưu form → reset tu_dong_an về null (auto-managed lại bởi scheduler)
+        $validated['tu_dong_an'] = null;
 
         DB::transaction(function () use ($mon, $validated, $dinhMucs, $temperatureOptions, $sweetnessOptions, $toppingOptions) {
             $mon->update($validated);
@@ -419,10 +430,19 @@ class MenuController extends Controller
     public function restore(string $maMon)
     {
         $mon = Mon::findOrFail($maMon);
-        $mon->update(['trang_thai' => 'active']);
+
+        // Nếu món đang het_hang (tự ẩn hoặc thủ công): set tu_dong_an = 0
+        // để scheduler không tự ẩn lại — item vẫn hiển thị nhưng "Hết hàng" qua annotation nếu kho chưa có.
+        // Nếu món đang 'an' (ẩn thủ công): reset tu_dong_an = null để quay lại auto-manage.
+        $updateData = [
+            'trang_thai' => 'active',
+            'tu_dong_an' => $mon->trang_thai === 'het_hang' ? 0 : null,
+        ];
+
+        $mon->update($updateData);
 
         NhatKyHanhDong::ghi('hien_mon', 'mon', $maMon, "Hiện lại món {$maMon}");
         return redirect()->back()
-            ->with('success', 'Đã bỏ ẩn món: '.$mon->ten_mon);
+            ->with('success', 'Đã hiện lại món: '.$mon->ten_mon);
     }
 }

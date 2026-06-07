@@ -26,6 +26,7 @@
                         <th class="px-4 py-3 text-left">Mã phiếu</th>
                         <th class="px-4 py-3 text-left">Thời gian kiểm kê</th>
                         <th class="px-4 py-3 text-left">Người kiểm kê</th>
+                        <th class="px-4 py-3 text-left">Ghi chú</th>
                         <th class="px-4 py-3 text-left">Trạng thái</th>
                         <th class="px-4 py-3 text-right">Thao tác</th>
                     </tr>
@@ -36,6 +37,13 @@
                         <td class="px-4 py-3 font-mono text-gray-500">{{ $check->ma_pkk }}</td>
                         <td class="px-4 py-3 text-gray-700">{{ $check->thoi_gian_kk ? \Carbon\Carbon::parse($check->thoi_gian_kk)->format('d/m/Y H:i') : $check->ngay_kk }}</td>
                         <td class="px-4 py-3 text-gray-700">{{ $check->nhanVien->ten_nv ?? '-' }}</td>
+                        <td class="px-4 py-3 max-w-[180px]">
+                            @if($check->ghi_chu)
+                                <span class="block truncate text-xs text-gray-500" title="{{ $check->ghi_chu }}">{{ $check->ghi_chu }}</span>
+                            @else
+                                <span class="text-gray-300">—</span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3">
                             @if($check->trang_thai === 'nhap')
                                 <span class="rounded-full bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">Nháp</span>
@@ -75,7 +83,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="px-4 py-8 text-center text-gray-400">Chưa có phiếu kiểm kê nào.</td>
+                        <td colspan="6" class="px-4 py-8 text-center text-gray-400">Chưa có phiếu kiểm kê nào.</td>
                     </tr>
                     @endforelse
                 </tbody>

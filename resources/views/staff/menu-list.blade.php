@@ -4,16 +4,23 @@
 
 @section('content')
 <div class="max-w-6xl">
-    @if($stockWarnings->isNotEmpty())
+    @if($stockWarnings->isNotEmpty() || ($autoHiddenCount ?? 0) > 0)
         <div class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
             <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                    <p class="text-sm font-semibold text-amber-800">Có món đang hết nguyên liệu</p>
-                    <p class="mt-1 text-sm text-amber-700">Có {{ $stockWarnings->count() }} món cần kiểm tra và có thể ẩn khỏi thực đơn khách hàng.</p>
+                    <p class="text-sm font-semibold text-amber-800">Cảnh báo tồn kho</p>
+                    <p class="mt-1 text-sm text-amber-700">
+                        @if($stockWarnings->isNotEmpty())
+                            <span>{{ $stockWarnings->count() }} món đang bán bị thiếu nguyên liệu.</span>
+                        @endif
+                        @if(($autoHiddenCount ?? 0) > 0)
+                            <span>{{ $autoHiddenCount }} món đã tự động ẩn.</span>
+                        @endif
+                    </p>
                 </div>
                 <a href="{{ route('menu.out-of-stock') }}"
                    class="inline-flex rounded-xl bg-[#1A1A1A] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#522C25]">
-                    Xem danh sách
+                    Xem &amp; xử lý
                 </a>
             </div>
         </div>
@@ -114,6 +121,15 @@
                             @method('PUT')
                             <button type="submit" class="w-full rounded-lg bg-green-50 py-1.5 text-xs font-medium text-green-700 transition hover:bg-green-100">
                                 Bỏ ẩn
+                            </button>
+                        </form>
+                    @elseif($mon->trang_thai === 'het_hang')
+                        <form method="POST" action="{{ route('menu.restore', $mon->ma_mon) }}"
+                              onsubmit="return confirm('Hiện lại món {{ addslashes($mon->ten_mon) }}?\nMón sẽ xuất hiện trên thực đơn (khách không thể đặt nếu vẫn hết kho).')">
+                            @csrf
+                            @method('PUT')
+                            <button type="submit" class="w-full rounded-lg bg-blue-50 py-1.5 text-xs font-medium text-blue-600 transition hover:bg-blue-100">
+                                Hiện lại
                             </button>
                         </form>
                     @else

@@ -59,6 +59,10 @@
                 <p class="font-mono font-semibold text-gray-900">{{ $import->ma_pnk }}</p>
             </div>
             <div>
+                <p class="mb-1 text-xs font-medium uppercase tracking-[0.12em] text-gray-400">Người lập phiếu</p>
+                <p class="font-semibold text-gray-900">{{ $import->nhanVien->ten_nv ?? '—' }}</p>
+            </div>
+            <div>
                 <p class="mb-1 text-xs font-medium uppercase tracking-[0.12em] text-gray-400">Nhà cung cấp</p>
                 <p class="font-semibold text-gray-900">{{ $import->nhaCungCap->ten_ncc ?? 'Chưa rõ' }}</p>
             </div>
