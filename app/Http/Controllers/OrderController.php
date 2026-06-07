@@ -22,12 +22,22 @@ class OrderController extends Controller
         $status     = in_array($request->get('status'), $allowedStatuses, true) ? $request->get('status') : 'cho_xac_nhan';
         $maChiNhanh = (string) session('ma_chi_nhanh', '');
 
-        $orders = Order::with(['ban', 'chiTietOrders.mon', 'chiTietOrders.options', 'khachHang', 'hoaDon'])
+        // Dọn đơn rỗng (0 món) trước khi hiển thị — tránh card "0 món, 0đ" xuất hiện.
+        $this->orderService->purgeEmptyCarts();
+
+        $q = Order::with(['ban', 'chiTietOrders.mon', 'chiTietOrders.options', 'khachHang', 'hoaDon'])
             ->where('ma_chi_nhanh', $maChiNhanh)
-            ->where('trang_thai', $status)
-            ->orderByDesc('ngay_order')
-            ->orderByDesc('gio_order')
-            ->paginate(12);
+            ->where('trang_thai', $status);
+
+        // Các tab đang xử lý chỉ hiện đơn TRONG NGÀY;
+        // tab "Đã thanh toán" cần lịch sử nhiều ngày nên không lọc.
+        if ($status !== 'hoan_thanh') {
+            $q->whereDate('ngay_order', now()->toDateString());
+        }
+
+        $orders = $q->orderByDesc('ngay_order')
+                    ->orderByDesc('gio_order')
+                    ->paginate(12);
 
         $counts = $this->orderService->countByStatus($maChiNhanh);
 

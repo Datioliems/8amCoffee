@@ -221,6 +221,14 @@ class OrderService
                           ->lockForUpdate()
                           ->firstOrFail();
 
+            // Không cho gửi đơn rỗng — tránh tạo đơn 0 món trên bảng staff.
+            $soMon = ChiTietOrder::where('ma_order', $maOrder)->sum('so_luong');
+            if ((int) $soMon === 0) {
+                throw ValidationException::withMessages([
+                    'items' => 'Vui lòng chọn ít nhất một món trước khi gửi đơn.',
+                ]);
+            }
+
             $changes = ['trang_thai' => 'cho_xac_nhan'];
             if ($hinhThuc !== null) {
                 $changes['hinh_thuc'] = $hinhThuc === 'mang_ve' ? 'mang_ve' : 'tai_ban';
@@ -535,10 +543,15 @@ class OrderService
         });
     }
 
-    /** Dọn "giỏ rác": đơn dang_chon KHÔNG có món nào (khách quét QR rồi bỏ). */
+    /**
+     * Dọn "giỏ rác":
+     * - Đơn dang_chon KHÔNG có món nào (khách quét QR rồi bỏ).
+     * - Đơn cho_xac_nhan KHÔNG có món nào (submit rỗng lọt qua validation cũ).
+     */
     public function purgeEmptyCarts(?string $maBan = null): int
     {
-        $q = Order::where('trang_thai', 'dang_chon')->whereDoesntHave('chiTietOrders');
+        $q = Order::whereIn('trang_thai', ['dang_chon', 'cho_xac_nhan'])
+                  ->whereDoesntHave('chiTietOrders');
         if ($maBan) {
             $q->where('ma_ban', $maBan);
         }
