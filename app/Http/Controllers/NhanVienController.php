@@ -250,14 +250,25 @@ class NhanVienController extends Controller
             'ma_chi_nhanh' => 'nullable|exists:CHI_NHANH,ma_chi_nhanh',
         ]);
 
+        // ── Phát hiện giáng cấp ──────────────────────────────
+        $rankMap     = ['nhan_vien' => 1, 'admin' => 2, 'superadmin' => 3];
+        $isDemotion  = ($rankMap[$data['chuc_vu']] ?? 0) < ($rankMap[$acc->chuc_vu] ?? 0);
+        $roleLabel   = ['nhan_vien' => 'Nhân viên', 'admin' => 'Quản lý chi nhánh', 'superadmin' => 'Chủ chuỗi'];
+
         $upd = [
             'chuc_vu'    => $data['chuc_vu'],
-            'trang_thai' => $data['trang_thai'],
+            // Giáng cấp → bắt buộc vô hiệu hoá, không để người dùng chọn trạng thái
+            'trang_thai' => $isDemotion ? 'inactive' : $data['trang_thai'],
         ];
+
+        if ($isDemotion) {
+            // Reset quyền về null để dùng default của vai trò mới khi kích hoạt lại
+            $upd['quyen'] = null;
+        }
 
         // Chỉ superadmin được đặt lại mật khẩu của nhân viên cấp thấp
         $newPassword = null;
-        if (! empty($data['reset_mat_khau'])) {
+        if (! $isDemotion && ! empty($data['reset_mat_khau'])) {
             abort_unless($this->isSuperAdmin(), 403, 'Chỉ chủ chuỗi mới được đặt lại mật khẩu.');
             $newPassword = $this->randomPassword();
             $upd['mat_khau'] = Hash::make($newPassword);
@@ -268,6 +279,18 @@ class NhanVienController extends Controller
         // Chỉ superadmin được chuyển nhân viên sang chi nhánh khác
         if ($this->isSuperAdmin() && ! empty($data['ma_chi_nhanh'])) {
             DB::table('NHAN_VIEN')->where('ma_nv', $acc->nv)->update(['ma_chi_nhanh' => $data['ma_chi_nhanh']]);
+        }
+
+        // ── Giáng cấp: ghi log riêng + thông báo rõ ràng ────
+        if ($isDemotion) {
+            NhatKyHanhDong::ghi('giang_cap_tai_khoan', 'tai_khoan', $maTaiKhoan,
+                "Giáng cấp {$maTaiKhoan} ({$acc->ten_nv}): {$acc->chuc_vu} → {$data['chuc_vu']} — tài khoản đã vô hiệu hoá");
+
+            $fromLabel = $roleLabel[$acc->chuc_vu] ?? $acc->chuc_vu;
+            $toLabel   = $roleLabel[$data['chuc_vu']] ?? $data['chuc_vu'];
+            return back()->with('success',
+                "Đã giáng cấp \"{$acc->ten_tk}\" ({$acc->ten_nv}) từ {$fromLabel} → {$toLabel}. " .
+                "Tài khoản đã bị vô hiệu hoá. Nếu người này vẫn còn làm việc, hãy tạo tài khoản nhân viên mới cho họ.");
         }
 
         $msg = "Đã cập nhật tài khoản {$maTaiKhoan}.";

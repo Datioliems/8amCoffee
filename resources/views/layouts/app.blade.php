@@ -220,5 +220,6 @@
     </section>
 </main>
 
+@stack('scripts')
 </body>
 </html>

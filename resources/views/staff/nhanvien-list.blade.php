@@ -137,11 +137,15 @@
                                 {{ $isSelf ? 'Tài khoản của bạn' : '—' }}
                             </td>
                         @else
-                            <form method="POST" action="{{ route('nhanvien.update', $a->ma_tai_khoan) }}" class="contents">
+                            <form method="POST" action="{{ route('nhanvien.update', $a->ma_tai_khoan) }}"
+                                  class="contents" data-update-form>
                                 @csrf
                                 @method('PUT')
                                 <td class="px-4 py-3">
-                                    <select name="chuc_vu" class="rounded-lg border border-[#522C25]/15 px-2 py-1.5 text-xs">
+                                    <select name="chuc_vu"
+                                            data-current-role="{{ $a->chuc_vu }}"
+                                            data-account-name="{{ $a->ten_nv }}"
+                                            class="rounded-lg border border-[#522C25]/15 px-2 py-1.5 text-xs">
                                         @foreach($roles as $key => $label)
                                             <option value="{{ $key }}" @selected($a->chuc_vu===$key)>{{ $label }}</option>
                                         @endforeach
@@ -204,4 +208,114 @@
     </div>
 
 </div>
+
+{{-- ── Modal xác nhận giáng cấp ────────────────────────────── --}}
+<div id="demoteModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-[#522C25]/10 mx-4">
+
+        <div class="mb-4 flex items-start gap-3">
+            <span class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-lg">⚠️</span>
+            <div>
+                <h3 class="text-base font-semibold text-[#1A1A1A]">Xác nhận giáng cấp vai trò</h3>
+                <p class="mt-0.5 text-xs text-[#522C25]/60">Hành động này không thể hoàn tác tự động</p>
+            </div>
+        </div>
+
+        <p id="demoteDesc" class="mb-4 text-sm leading-6 text-[#522C25]/80"></p>
+
+        <div class="mb-5 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
+            <strong>Tài khoản sẽ bị vô hiệu hoá ngay lập tức.</strong>
+            Sau khi xác nhận, nếu người này vẫn còn làm việc, hãy <strong>tạo tài khoản nhân viên mới</strong> cho họ ở form phía trên.
+        </div>
+
+        <div class="flex justify-end gap-3">
+            <button id="demoteCancel" type="button"
+                    class="rounded-xl border border-[#522C25]/20 px-4 py-2.5 text-sm font-semibold text-[#522C25] hover:bg-[#F8F6F5]">
+                Huỷ, giữ nguyên
+            </button>
+            <button id="demoteConfirm" type="button"
+                    class="rounded-xl bg-[#E82C2A] px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700">
+                Xác nhận giáng cấp
+            </button>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+(function () {
+    const RANK  = { nhan_vien: 1, admin: 2, superadmin: 3 };
+    const LABEL = { nhan_vien: 'Nhân viên', admin: 'Quản lý chi nhánh', superadmin: 'Chủ chuỗi' };
+
+    const modal        = document.getElementById('demoteModal');
+    const descEl       = document.getElementById('demoteDesc');
+    const btnCancel    = document.getElementById('demoteCancel');
+    const btnConfirm   = document.getElementById('demoteConfirm');
+    let   pendingForm  = null;
+
+    // Intercept submit trên mỗi form cập nhật tài khoản
+    document.querySelectorAll('form[data-update-form]').forEach(function (form) {
+        form.addEventListener('submit', function (e) {
+            const sel         = form.querySelector('select[name="chuc_vu"]');
+            if (!sel) return;
+
+            const currentRole = sel.dataset.currentRole;
+            const newRole     = sel.value;
+
+            // Chỉ chặn khi là GIÁNG CẤP (rank mới < rank cũ)
+            if ((RANK[newRole] ?? 0) < (RANK[currentRole] ?? 0)) {
+                e.preventDefault();
+                pendingForm = form;
+
+                const name = sel.dataset.accountName || 'tài khoản này';
+                descEl.innerHTML =
+                    'Bạn đang giáng cấp <strong>' + name + '</strong> từ ' +
+                    '<span class="inline-flex rounded-full bg-[#E82C2A]/10 px-2 py-0.5 text-xs font-semibold text-[#E82C2A]">' + (LABEL[currentRole] ?? currentRole) + '</span>' +
+                    ' xuống ' +
+                    '<span class="inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-xs font-semibold text-sky-700">' + (LABEL[newRole] ?? newRole) + '</span>.' +
+                    '<br><br>Vì tài khoản đang có quyền cấp <strong>' + (LABEL[currentRole] ?? currentRole) + '</strong>, ' +
+                    'hệ thống sẽ <strong>vô hiệu hoá tài khoản</strong> để đảm bảo an toàn dữ liệu.';
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+            // Thăng cấp hoặc giữ nguyên → submit bình thường
+        });
+    });
+
+    // Nút Huỷ
+    btnCancel.addEventListener('click', function () {
+        pendingForm = null;
+        closeModal();
+    });
+
+    // Nút Xác nhận
+    btnConfirm.addEventListener('click', function () {
+        if (pendingForm) {
+            // Thêm hidden input để controller nhận biết giáng cấp đã được xác nhận
+            var inp = document.createElement('input');
+            inp.type  = 'hidden';
+            inp.name  = '_demotion_confirmed';
+            inp.value = '1';
+            pendingForm.appendChild(inp);
+            pendingForm.submit();
+        }
+        closeModal();
+    });
+
+    // Click ra ngoài modal để huỷ
+    modal.addEventListener('click', function (e) {
+        if (e.target === modal) {
+            pendingForm = null;
+            closeModal();
+        }
+    });
+
+    function closeModal() {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+})();
+</script>
+@endpush
 @endsection
